@@ -58,7 +58,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 20px;
-  background: #ffffff;
+  background: var(--surface-color);
 }
 
 .main-content {
@@ -128,7 +128,7 @@ select, input {
   width: 100%;
   padding: 12px 16px;
   border-radius: 8px;
-  background: #ffffff;
+  background: var(--surface-color);
   border: 1px solid var(--surface-border);
   color: var(--text-primary);
   font-size: 14px;
@@ -223,3 +223,4 @@ tr:hover td {
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
+

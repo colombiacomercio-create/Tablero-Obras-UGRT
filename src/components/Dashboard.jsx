@@ -343,7 +343,7 @@ export default function Dashboard() {
           <label style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '11px', marginBottom: '8px', textTransform: 'uppercase', fontWeight: 'bold' }}>
             Fecha de Corte
           </label>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#f1f5f9', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--surface-border)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(255, 255, 255, 0.05)', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--surface-border)' }}>
             <CalendarIcon size={16} color="var(--primary)" />
             <span style={{ color: 'var(--text-primary)', fontWeight: '600', fontSize: '13px' }}>{fechaCorte || 'Automática'}</span>
           </div>
@@ -368,29 +368,29 @@ export default function Dashboard() {
             Cifras Físicas (Terminadas 2026)
           </h3>
           
-          <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', padding: '12px', borderRadius: '8px' }}>
-            <span style={{ fontSize: '11px', color: '#065f46', fontWeight: 'bold', textTransform: 'uppercase' }}>Km-Carril Terminados</span>
-            <div style={{ fontSize: '24px', fontWeight: '800', color: '#047857' }}>{formatNum(stats.kmTerm)} <span style={{ fontSize: '12px' }}>km</span></div>
+          <div style={{ background: 'rgba(251, 191, 36, 0.1)', border: '1px solid #a7f3d0', padding: '12px', borderRadius: '8px' }}>
+            <span style={{ fontSize: '11px', color: 'var(--primary)', fontWeight: 'bold', textTransform: 'uppercase' }}>Km-Carril Terminados</span>
+            <div style={{ fontSize: '24px', fontWeight: '800', color: 'var(--primary)' }}>{formatNum(stats.kmTerm)} <span style={{ fontSize: '12px' }}>km</span></div>
           </div>
           
-          <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', padding: '12px', borderRadius: '8px' }}>
-            <span style={{ fontSize: '11px', color: '#1e40af', fontWeight: 'bold', textTransform: 'uppercase' }}>M² Intervenidos</span>
-            <div style={{ fontSize: '24px', fontWeight: '800', color: '#1d4ed8' }}>{formatNum(stats.m2Term)} <span style={{ fontSize: '12px' }}>m²</span></div>
+          <div style={{ background: 'rgba(255, 255, 255, 0.1)', border: '1px solid #bfdbfe', padding: '12px', borderRadius: '8px' }}>
+            <span style={{ fontSize: '11px', color: 'var(--text-primary)', fontWeight: 'bold', textTransform: 'uppercase' }}>M² Intervenidos</span>
+            <div style={{ fontSize: '24px', fontWeight: '800', color: 'var(--text-primary)' }}>{formatNum(stats.m2Term)} <span style={{ fontSize: '12px' }}>m²</span></div>
           </div>
           
-          <div style={{ background: '#fffbeb', border: '1px solid #fde68a', padding: '12px', borderRadius: '8px' }}>
-            <span style={{ fontSize: '11px', color: '#92400e', fontWeight: 'bold', textTransform: 'uppercase' }}>Huecos Tapados</span>
-            <div style={{ fontSize: '24px', fontWeight: '800', color: '#b45309' }}>{formatNum(stats.huecosTerm)}</div>
+          <div style={{ background: 'rgba(245, 158, 11, 0.1)', border: '1px solid #fde68a', padding: '12px', borderRadius: '8px' }}>
+            <span style={{ fontSize: '11px', color: 'var(--primary)', fontWeight: 'bold', textTransform: 'uppercase' }}>Huecos Tapados</span>
+            <div style={{ fontSize: '24px', fontWeight: '800', color: 'var(--primary)' }}>{formatNum(stats.huecosTerm)}</div>
           </div>
 
-          <div style={{ background: '#fef2f2', border: '1px solid #fecaca', padding: '12px', borderRadius: '8px' }}>
-            <span style={{ fontSize: '11px', color: '#991b1b', fontWeight: 'bold', textTransform: 'uppercase' }}>Valor Ejecutado</span>
-            <div style={{ fontSize: '18px', fontWeight: '800', color: '#b91c1c' }}>{formatCurrency(stats.valorTerm)}</div>
+          <div style={{ background: 'rgba(220, 38, 38, 0.1)', border: '1px solid #fecaca', padding: '12px', borderRadius: '8px' }}>
+            <span style={{ fontSize: '11px', color: 'var(--danger)', fontWeight: 'bold', textTransform: 'uppercase' }}>Valor Ejecutado</span>
+            <div style={{ fontSize: '18px', fontWeight: '800', color: 'var(--danger)' }}>{formatCurrency(stats.valorTerm)}</div>
           </div>
         </div>
 
         <div style={{ marginTop: 'auto', paddingTop: '24px' }}>
-          <div style={{ padding: '12px', background: '#f1f5f9', borderRadius: '8px', border: '1px solid var(--surface-border)' }}>
+          <div style={{ padding: '12px', background: 'rgba(255, 255, 255, 0.05)', borderRadius: '8px', border: '1px solid var(--surface-border)' }}>
             <p style={{ fontSize: '11px', color: 'var(--text-secondary)', margin: 0, fontWeight: '500' }}>{stats.programadas} frentes programados 2026</p>
           </div>
           <div style={{ marginTop: '16px', textAlign: 'center' }}>
@@ -458,7 +458,7 @@ export default function Dashboard() {
         <div className="charts-grid" style={{ gridTemplateColumns: '1fr', marginBottom: '32px' }}>
           {localidadFilter === 'VISIÓN GLOBAL' && (
             <div className="glass-panel" style={{ padding: '0', overflow: 'hidden' }}>
-              <div style={{ padding: '20px 24px', background: '#f8fafc', borderBottom: '1px solid var(--surface-border)' }}>
+              <div style={{ padding: '20px 24px', background: 'rgba(255, 255, 255, 0.03)', borderBottom: '1px solid var(--surface-border)' }}>
                 <h3 style={{ fontSize: '14px', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <Target size={18} color="var(--primary)"/> RANKING 1: DESEMPEÑO COMPUESTO (IDC) SOBRE META 2026
                 </h3>
@@ -499,10 +499,10 @@ export default function Dashboard() {
                   </tbody>
                 </table>
               </div>
-              <div style={{ padding: '12px 24px', background: '#f8fafc', borderTop: '1px solid var(--surface-border)' }}>
+              <div style={{ padding: '12px 24px', background: 'rgba(255, 255, 255, 0.03)', borderTop: '1px solid var(--surface-border)' }}>
                 <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-secondary)' }}>
                   <strong>Cálculo del IDC (Índice de Desempeño Compuesto):</strong> Asigna puntajes de 0 a 100 evaluando las obras que ya superaron su fecha de fin. 
-                  Fórmula: <code style={{ background: '#e2e8f0', padding: '2px 4px', borderRadius: '4px' }}>% Terminadas - (Castigo Suspendidas × 30) - (Castigo Atrasadas × 15)</code>
+                  Fórmula: <code style={{ background: 'rgba(255, 255, 255, 0.1)', padding: '2px 4px', borderRadius: '4px' }}>% Terminadas - (Castigo Suspendidas × 30) - (Castigo Atrasadas × 15)</code>
                 </p>
               </div>
             </div>
@@ -510,7 +510,7 @@ export default function Dashboard() {
 
           {/* Obras Suspendidas */}
           <div className="glass-panel" style={{ padding: '0', overflow: 'hidden' }}>
-            <div style={{ padding: '20px 24px', background: '#f8fafc', borderBottom: '1px solid var(--surface-border)' }}>
+            <div style={{ padding: '20px 24px', background: 'rgba(255, 255, 255, 0.03)', borderBottom: '1px solid var(--surface-border)' }}>
               <h3 style={{ fontSize: '14px', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <AlertTriangle size={18} color="var(--danger)"/> OBRAS SUSPENDIDAS (DETALLE)
               </h3>
@@ -544,7 +544,7 @@ export default function Dashboard() {
           
           {/* Próximas Entregas */}
           <div className="glass-panel" style={{ padding: '0', overflow: 'hidden' }}>
-            <div style={{ padding: '20px 24px', background: '#f8fafc', borderBottom: '1px solid var(--surface-border)' }}>
+            <div style={{ padding: '20px 24px', background: 'rgba(255, 255, 255, 0.03)', borderBottom: '1px solid var(--surface-border)' }}>
               <h3 style={{ fontSize: '14px', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Clock size={18} color="var(--info)"/> TOP 50: PRÓXIMAS ENTREGAS
               </h3>
@@ -580,7 +580,7 @@ export default function Dashboard() {
 
           {/* Entregadas Recientemente */}
           <div className="glass-panel" style={{ padding: '0', overflow: 'hidden' }}>
-            <div style={{ padding: '20px 24px', background: '#f8fafc', borderBottom: '1px solid var(--surface-border)' }}>
+            <div style={{ padding: '20px 24px', background: 'rgba(255, 255, 255, 0.03)', borderBottom: '1px solid var(--surface-border)' }}>
               <h3 style={{ fontSize: '14px', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <CheckCircle size={18} color="var(--success)"/> TOP 50: ENTREGADAS RECIENTEMENTE
               </h3>
@@ -618,33 +618,33 @@ export default function Dashboard() {
 
         {/* Alertas (Movidas a la parte inferior) */}
         <div className="glass-panel" style={{ padding: '0', gridColumn: '1 / -1' }}>
-          <div style={{ padding: '20px 24px', background: '#f8fafc', borderBottom: '1px solid var(--surface-border)' }}>
+          <div style={{ padding: '20px 24px', background: 'rgba(255, 255, 255, 0.03)', borderBottom: '1px solid var(--surface-border)' }}>
             <h3 style={{ fontSize: '14px', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
               <AlertTriangle size={18} color="var(--warning-text)"/> ALERTAS MESA TÉCNICA Y JURÍDICA (DETALLE)
             </h3>
           </div>
           <div style={{ padding: '24px' }}>
             <div style={{ display: 'flex', gap: '24px', marginBottom: '24px' }}>
-              <div style={{ flex: 1, background: '#fef2f2', padding: '16px', borderRadius: '8px', borderLeft: '4px solid var(--danger)' }}>
+              <div style={{ flex: 1, background: 'rgba(220, 38, 38, 0.1)', padding: '16px', borderRadius: '8px', borderLeft: '4px solid var(--danger)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <span style={{ color: '#991b1b', fontWeight: '600', fontSize: '13px' }}>No acogen Rec. Técnica</span>
+                  <span style={{ color: 'var(--danger)', fontWeight: '600', fontSize: '13px' }}>No acogen Rec. Técnica</span>
                   <span style={{ color: 'var(--danger)', fontWeight: '800', fontSize: '16px' }}>{alertasStats.noAcogeTec}</span>
                 </div>
               </div>
 
-              <div style={{ flex: 1, background: '#fffbeb', padding: '16px', borderRadius: '8px', borderLeft: '4px solid var(--warning-text)' }}>
+              <div style={{ flex: 1, background: 'rgba(245, 158, 11, 0.1)', padding: '16px', borderRadius: '8px', borderLeft: '4px solid var(--warning-text)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <span style={{ color: '#92400e', fontWeight: '600', fontSize: '13px' }}>No acogen Rec. Jurídica</span>
+                  <span style={{ color: 'var(--primary)', fontWeight: '600', fontSize: '13px' }}>No acogen Rec. Jurídica</span>
                   <span style={{ color: 'var(--warning-text)', fontWeight: '800', fontSize: '16px' }}>{alertasStats.noAcogeJur}</span>
                 </div>
               </div>
 
-              <div style={{ flex: 1, background: '#ecfdf5', padding: '16px', borderRadius: '8px', borderLeft: '4px solid var(--success)' }}>
+              <div style={{ flex: 1, background: 'rgba(251, 191, 36, 0.1)', padding: '16px', borderRadius: '8px', borderLeft: '4px solid var(--success)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <span style={{ color: '#065f46', fontWeight: '600', fontSize: '13px' }}>% Rec. Acogidas Global</span>
+                  <span style={{ color: 'var(--primary)', fontWeight: '600', fontSize: '13px' }}>% Rec. Acogidas Global</span>
                   <span style={{ color: 'var(--primary-dark)', fontWeight: '800', fontSize: '16px' }}>{alertasStats.pctAcogidas.toFixed(1)}%</span>
                 </div>
-                <div style={{ fontSize: '11px', color: '#065f46', marginTop: '4px' }}>
+                <div style={{ fontSize: '11px', color: 'var(--primary)', marginTop: '4px' }}>
                   {alertasStats.totalAcogidas} acogidas de {alertasStats.totalRecomendaciones} registradas
                 </div>
               </div>
@@ -684,4 +684,5 @@ export default function Dashboard() {
     </div>
   );
 }
+
 
