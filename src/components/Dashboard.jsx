@@ -291,6 +291,16 @@ export default function Dashboard() {
       .slice(0, 50);
   }, [filteredData]);
 
+  // Tabla Suspendidas
+  const suspendidasList = useMemo(() => {
+    return filteredData
+      .filter(d => {
+        const est = d.estado ? String(d.estado).toUpperCase() : '';
+        return est === 'SUSPENDIDO';
+      })
+      .slice(0, 50);
+  }, [filteredData]);
+
   const formatCurrency = (val) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(val);
   const formatNum = (val) => new Intl.NumberFormat('es-CO', { maximumFractionDigits: 1 }).format(val);
 
