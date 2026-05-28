@@ -2,20 +2,25 @@
   --bg-color: #f8fafc; /* Light gray background */
   --surface-color: #ffffff; /* White cards */
   --surface-border: #e2e8f0;
-  --text-primary: #1e293b; /* Dark text */
-  --text-secondary: #64748b;
-  
-  --primary: #E1001A; /* Rojo Bogotá */
+  /* Tema Alto Contraste: Negro, Blanco, Amarillo, Rojo */
+  --bg-color: #000000;
+  --surface-color: #111111;
+  --surface-border: #333333;
+  --primary: #fbbf24;       /* Amarillo fuerte */
+  --primary-dark: #f59e0b;
   --primary-hover: #c00016;
   
   /* Status Colors */
-  --success: #10b981; /* Emerald 500 */
-  --warning: #FFE512; /* Amarillo Bogotá */
-  --warning-text: #b45309; /* Darker yellow/orange for text readability on white */
-  --danger: #ef4444;  /* Red 500 */
-  --info: #0ea5e9;    /* Sky 500 */
+  --success: #fbbf24;       /* Se usa amarillo para destacar el éxito / progreso */
+  --info: #ffffff;          /* Blanco para la información */
+  --warning: #ef4444;       /* Rojo para alertas */
+  --warning-text: #ef4444;  
+  --danger: #dc2626;        /* Rojo más fuerte */
+  
+  --text-primary: #ffffff;
+  --text-secondary: #a3a3a3;
 
-  --font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
 
 body {
@@ -24,6 +29,7 @@ body {
   background: var(--bg-color);
   color: var(--text-primary);
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
 }
 
 /* Glassmorphism/Card Classes */

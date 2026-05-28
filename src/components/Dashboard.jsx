@@ -147,37 +147,53 @@ export default function Dashboard() {
   // Alertas Stats
   const alertasStats = useMemo(() => {
     let noAcogeTec = 0, noAcogeJur = 0;
+    let totalRecomendaciones = 0, totalAcogidas = 0;
     const detallePendientes = [];
     
     filteredAlertas.forEach(a => {
-      const tec = a.acogio_tecnica ? String(a.acogio_tecnica).toUpperCase() : '';
-      const jur = a.acogio_juridica ? String(a.acogio_juridica).toUpperCase() : '';
+      const tec = a.acogio_tecnica ? String(a.acogio_tecnica).trim().toUpperCase() : '';
+      const jur = a.acogio_juridica ? String(a.acogio_juridica).trim().toUpperCase() : '';
+
+      // KPI Global de Recomendaciones
+      if (tec !== '') {
+        totalRecomendaciones++;
+        if (tec === 'SI' || tec === 'SÍ') totalAcogidas++;
+      }
+      if (jur !== '') {
+        totalRecomendaciones++;
+        if (jur === 'SI' || jur === 'SÍ') totalAcogidas++;
+      }
 
       let tienePendiente = false;
       let tipoPendiente = [];
+      let obsPendiente = [];
 
-      if (tec === 'NO' || tec === 'PARCIALMENTE') {
+      if (tec === 'NO') {
         noAcogeTec++;
         tienePendiente = true;
         tipoPendiente.push('Técnica');
+        if (a.observacion_tecnica) obsPendiente.push(a.observacion_tecnica);
       }
-      if (jur === 'NO' || jur === 'PARCIALMENTE') {
+      if (jur === 'NO') {
         noAcogeJur++;
         tienePendiente = true;
         tipoPendiente.push('Jurídica');
+        if (a.observacion_juridica) obsPendiente.push(a.observacion_juridica);
       }
 
       if (tienePendiente) {
         detallePendientes.push({
           localidad: a.localidad || 'Sin dato',
-          contrato: a.numero_contrato || 'Sin contrato',
+          contrato: a.contrato || 'Sin contrato',
           tipo: tipoPendiente.join(' y '),
-          obs: a.observacion || 'Sin observación específica'
+          obs: obsPendiente.join(' | ') || 'Sin observación específica'
         });
       }
     });
     
-    return { noAcogeTec, noAcogeJur, total: filteredAlertas.length, detallePendientes };
+    const pctAcogidas = totalRecomendaciones > 0 ? (totalAcogidas / totalRecomendaciones) * 100 : 0;
+    
+    return { noAcogeTec, noAcogeJur, totalRecomendaciones, totalAcogidas, pctAcogidas, detallePendientes };
   }, [filteredAlertas]);
 
   // Desglose Mensual 2026 (Solo valores no acumulados, sobre Universo 2026)
@@ -620,6 +636,16 @@ export default function Dashboard() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                   <span style={{ color: '#92400e', fontWeight: '600', fontSize: '13px' }}>No acogen Rec. Jurídica</span>
                   <span style={{ color: 'var(--warning-text)', fontWeight: '800', fontSize: '16px' }}>{alertasStats.noAcogeJur}</span>
+                </div>
+              </div>
+
+              <div style={{ flex: 1, background: '#ecfdf5', padding: '16px', borderRadius: '8px', borderLeft: '4px solid var(--success)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <span style={{ color: '#065f46', fontWeight: '600', fontSize: '13px' }}>% Rec. Acogidas Global</span>
+                  <span style={{ color: 'var(--primary-dark)', fontWeight: '800', fontSize: '16px' }}>{alertasStats.pctAcogidas.toFixed(1)}%</span>
+                </div>
+                <div style={{ fontSize: '11px', color: '#065f46', marginTop: '4px' }}>
+                  {alertasStats.totalAcogidas} acogidas de {alertasStats.totalRecomendaciones} registradas
                 </div>
               </div>
             </div>

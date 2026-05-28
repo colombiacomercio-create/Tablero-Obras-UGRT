@@ -53,8 +53,10 @@ export const parseExcelToDB = async (file, onProgress) => {
               localidad: row['B'] || null,
               contrato: row['C'] || null,
               estado_general: row['F'] || null,
-              acogio_tecnica: row['K'] || null, // Acogio Las Recomendaciones Técnicas...
-              acogio_juridica: row['L'] || null, // Acogio Las Recomendaciones Jurídicas...
+              acogio_tecnica: row['K'] || null, // Acogio Las Recomendaciones Técnicas
+              acogio_juridica: row['L'] || null, // Acogio Las Recomendaciones Jurídicas
+              observacion_tecnica: row['G'] || null,
+              observacion_juridica: row['H'] || null,
               gestiones_otras_entidades: row['M'] || null
             });
           }
