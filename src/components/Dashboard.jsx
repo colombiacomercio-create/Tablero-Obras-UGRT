@@ -105,27 +105,18 @@ export default function Dashboard() {
     filteredData.forEach(d => {
       const tc = d.tipo_contrato ? String(d.tipo_contrato).toUpperCase() : '';
       const estado = d.estado ? String(d.estado).toUpperCase().trim() : '';
+      const tipoInt = d.tipo_intervencion ? String(d.tipo_intervencion).toUpperCase().trim() : '';
       
       let dFin = d.crono_fin ? new Date(d.crono_fin) : null;
       let dReal = d.fecha_real_fin ? new Date(d.fecha_real_fin) : null;
       
-      // Filtro 1: Tipo de Contrato = OBRA o CONVENIO
       let okTipo = (tc.includes('OBRA') || tc.includes('CONVENIO'));
+      let okIntervencion = !tipoInt.includes('ESTUDIOS');
+      let okCronoFin = !dFin || dFin.getFullYear() !== 2027;
+      let okEstado = estado !== 'INCUMPLIMIENTO' && estado !== 'NO EJECUTADO';
+      let okRealFin = !d.fecha_real_fin || (dReal && dReal.getFullYear() === 2026);
       
-      // Filtro 2: Cronograma Fin = vacía, 2024, 2025, 2026
-      let okCronoFin = false;
-      if (!d.crono_fin || (dFin && [2023, 2024, 2025, 2026].includes(dFin.getFullYear()))) okCronoFin = true;
-      
-      // Filtro 3: Estado Intervención
-      let okEstado = false;
-      const validEstados = ['POR INICIAR', 'EN EJECUCION', 'EN EJECUCIÓN', 'SUSPENDIDO', 'TERMINADO'];
-      if (!d.estado || validEstados.includes(estado)) okEstado = true;
-      
-      // Filtro 4: Fecha Fin Intervención (Real) = vacía o 2026
-      let okRealFin = false;
-      if (!d.fecha_real_fin || (dReal && dReal.getFullYear() === 2026)) okRealFin = true;
-      
-      let esUniverso = okTipo && okCronoFin && okEstado && okRealFin;
+      let esUniverso = okTipo && okIntervencion && okCronoFin && okEstado && okRealFin;
       
       if (esUniverso) {
         universoCount++;
@@ -611,7 +602,7 @@ export default function Dashboard() {
                         <td style={{ fontWeight: '500' }}>{r.loc}</td>
                         <td style={{ textAlign: 'center' }}>{r.progTotales}</td>
                         <td style={{ textAlign: 'center', color: 'var(--success)', fontWeight: 'bold' }}>{r.termTotales}</td>
-                        <td style={{ textAlign: 'center', color: 'var(--danger)' }}>{r.progVencidas}</td>
+                        <td style={{ textAlign: 'center', color: 'var(--danger)' }}>{r.atrasadas}</td>
                         <td style={{ textAlign: 'right' }}>
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px' }}>
                             <span style={{ 
@@ -825,5 +816,6 @@ export default function Dashboard() {
     </div>
   );
 }
+
 
 
