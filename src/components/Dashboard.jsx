@@ -97,88 +97,102 @@ export default function Dashboard() {
 
   // Main KPIs (Paridad Matemática 1:1 con Excel)
   const stats = useMemo(() => {
-    let terminadas = 0, suspendidas = 0, incumplimiento = 0, programadas = 0;
+    let terminadas = 0, suspendidas = 0, enEjecucion = 0, sinCronograma = 0;
+    let universoCount = 0;
     let kmTerm = 0, m2Term = 0, mlTerm = 0, huecosTerm = 0;
-    let valorProg2026 = 0, valorTerm2026 = 0;
-
+    
     filteredData.forEach(d => {
-      const estado = d.estado ? String(d.estado).toUpperCase() : '';
-      const val = Number(d.valor_final) || 0; // Valor de la intervención
+      const tc = d.tipo_contrato ? String(d.tipo_contrato).toUpperCase() : '';
+      const estado = d.estado ? String(d.estado).toUpperCase().trim() : '';
       
-      let es2026 = false;
-      if (d.crono_fin) {
-        const dFin = new Date(d.crono_fin);
-        if (dFin.getFullYear() === 2026) es2026 = true;
-      } else if (d.crono_inicio) {
-        const dIni = new Date(d.crono_inicio);
-        if (dIni.getFullYear() === 2026) es2026 = true;
-      }
-
-      // 1. SUSPENDIDAS e INCUMPLIMIENTOS
-      if (estado === 'SUSPENDIDO') suspendidas++;
-      if (estado === 'INCUMPLIMIENTO') incumplimiento++;
+      let dFin = d.crono_fin ? new Date(d.crono_fin) : null;
+      let dReal = d.fecha_real_fin ? new Date(d.fecha_real_fin) : null;
       
-      // Universo 2026
-      if (es2026) {
-        programadas++;
-        valorProg2026 += val;
+      // Filtro 1: Tipo de Contrato = OBRA o CONVENIO
+      let okTipo = (tc.includes('OBRA') || tc.includes('CONVENIO'));
+      
+      // Filtro 2: Cronograma Fin = vacía, 2024, 2025, 2026
+      let okCronoFin = false;
+      if (!d.crono_fin || (dFin && [2024, 2025, 2026].includes(dFin.getFullYear()))) okCronoFin = true;
+      
+      // Filtro 3: Estado Intervención
+      let okEstado = false;
+      const validEstados = ['POR INICIAR', 'EN EJECUCION', 'EN EJECUCIÓN', 'SUSPENDIDO', 'TERMINADO'];
+      if (!d.estado || validEstados.includes(estado)) okEstado = true;
+      
+      // Filtro 4: Fecha Fin Intervención (Real) = vacía o 2026
+      let okRealFin = false;
+      if (!d.fecha_real_fin || (dReal && dReal.getFullYear() === 2026)) okRealFin = true;
+      
+      let esUniverso = okTipo && okCronoFin && okEstado && okRealFin;
+      
+      if (esUniverso) {
+        universoCount++;
         
         if (estado === 'TERMINADO') {
           terminadas++;
-          valorTerm2026 += val;
           kmTerm += Number(d.km_carril) || 0;
           m2Term += Number(d.m2) || 0;
           mlTerm += Number(d.ml) || 0;
           huecosTerm += Number(d.huecos) || 0;
         }
+        
+        if (estado === 'SUSPENDIDO') suspendidas++;
+        if (estado === 'EN EJECUCION' || estado === 'EN EJECUCIÓN') enEjecucion++;
+        if (!d.crono_fin) sinCronograma++;
       }
     });
 
-    const cumplimiento = programadas > 0 ? (terminadas / programadas) * 100 : 0;
-    const pctFinanciero = valorProg2026 > 0 ? (valorTerm2026 / valorProg2026) * 100 : 0;
+    // La meta solicitada es 1700 (se divide si hay filtro local)
+    const metaTotal = localidadFilter === 'VISIÓN GLOBAL' ? 1700 : Math.round(1700 / 20);
+    const cumplimiento = metaTotal > 0 ? (terminadas / metaTotal) * 100 : 0;
 
     return {
-      programadas, terminadas, suspendidas, incumplimiento,
-      cumplimiento, kmTerm, m2Term, mlTerm, huecosTerm, 
-      valorTerm: valorTerm2026, valorTotalProg: valorProg2026, pctFinanciero
+      universoCount, metaTotal, terminadas, suspendidas, enEjecucion, sinCronograma,
+      cumplimiento, kmTerm, m2Term, mlTerm, huecosTerm
     };
   }, [filteredData, localidadFilter]);
 
   // Alertas Stats
   const alertasStats = useMemo(() => {
-    let noAcogeTec = 0, noAcogeJur = 0;
-    let totalRecomendaciones = 0, totalAcogidas = 0;
+    let totalObsTecnica = 0, totalObsJuridica = 0;
+    let tecAcogidas = 0, jurAcogidas = 0;
+    let tecParcial = 0, jurParcial = 0;
     const detallePendientes = [];
     
     filteredAlertas.forEach(a => {
+      const hasTec = !!a.observacion_tecnica;
+      const hasJur = !!a.observacion_juridica;
+      
+      if (!hasTec && !hasJur) return; // Only process rows with observations
+
       const tec = a.acogio_tecnica ? String(a.acogio_tecnica).trim().toUpperCase() : '';
       const jur = a.acogio_juridica ? String(a.acogio_juridica).trim().toUpperCase() : '';
-
-      // KPI Global de Recomendaciones
-      if (tec !== '') {
-        totalRecomendaciones++;
-        if (tec === 'SI' || tec === 'SÍ') totalAcogidas++;
-      }
-      if (jur !== '') {
-        totalRecomendaciones++;
-        if (jur === 'SI' || jur === 'SÍ') totalAcogidas++;
-      }
 
       let tienePendiente = false;
       let tipoPendiente = [];
       let obsPendiente = [];
 
-      if (tec === 'NO') {
-        noAcogeTec++;
-        tienePendiente = true;
-        tipoPendiente.push('Técnica');
-        if (a.observacion_tecnica) obsPendiente.push(a.observacion_tecnica);
+      if (hasTec) {
+        totalObsTecnica++;
+        if (tec === 'SI' || tec === 'SÍ') tecAcogidas++;
+        else if (tec === 'PARCIALMENTE') tecParcial++;
+        else if (tec === 'NO') {
+          tienePendiente = true;
+          tipoPendiente.push('Técnica');
+          obsPendiente.push(a.observacion_tecnica);
+        }
       }
-      if (jur === 'NO') {
-        noAcogeJur++;
-        tienePendiente = true;
-        tipoPendiente.push('Jurídica');
-        if (a.observacion_juridica) obsPendiente.push(a.observacion_juridica);
+
+      if (hasJur) {
+        totalObsJuridica++;
+        if (jur === 'SI' || jur === 'SÍ') jurAcogidas++;
+        else if (jur === 'PARCIALMENTE') jurParcial++;
+        else if (jur === 'NO') {
+          tienePendiente = true;
+          tipoPendiente.push('Jurídica');
+          obsPendiente.push(a.observacion_juridica);
+        }
       }
 
       if (tienePendiente) {
@@ -191,37 +205,47 @@ export default function Dashboard() {
       }
     });
     
-    const pctAcogidas = totalRecomendaciones > 0 ? (totalAcogidas / totalRecomendaciones) * 100 : 0;
+    const totalObservaciones = totalObsTecnica + totalObsJuridica;
+    const totalAcogidas = tecAcogidas + jurAcogidas;
+    const totalParciales = tecParcial + jurParcial;
+    const pctAcogidas = totalObservaciones > 0 ? (totalAcogidas / totalObservaciones) * 100 : 0;
     
-    return { noAcogeTec, noAcogeJur, totalRecomendaciones, totalAcogidas, pctAcogidas, detallePendientes };
+    return { totalObservaciones, tecAcogidas, jurAcogidas, tecParcial, jurParcial, totalAcogidas, totalParciales, pctAcogidas, detallePendientes };
   }, [filteredAlertas]);
 
-  // Desglose Mensual 2026 (Solo valores no acumulados, sobre Universo 2026)
+  // Desglose Mensual (Sobre Nuevo Universo)
   const monthlyData = useMemo(() => {
     const dataByMonth = MONTHS.map((m, i) => ({ name: m, Programadas: 0, Terminadas: 0 }));
     
     filteredData.forEach(d => {
-      let es2026 = false;
+      const tc = d.tipo_contrato ? String(d.tipo_contrato).toUpperCase() : '';
+      const estado = d.estado ? String(d.estado).toUpperCase().trim() : '';
       let dFin = d.crono_fin ? new Date(d.crono_fin) : null;
-      if (dFin && dFin.getFullYear() === 2026) es2026 = true;
-
-      if (!es2026) return;
-
-      const estado = d.estado ? String(d.estado).toUpperCase() : '';
+      let dReal = d.fecha_real_fin ? new Date(d.fecha_real_fin) : null;
       
-      // Programadas: Según mes de crono_fin
-      if (dFin) {
+      let okTipo = (tc.includes('OBRA') || tc.includes('CONVENIO'));
+      let okCronoFin = false;
+      if (!d.crono_fin || (dFin && [2024, 2025, 2026].includes(dFin.getFullYear()))) okCronoFin = true;
+      let okEstado = false;
+      const validEstados = ['POR INICIAR', 'EN EJECUCION', 'EN EJECUCIÓN', 'SUSPENDIDO', 'TERMINADO'];
+      if (!d.estado || validEstados.includes(estado)) okEstado = true;
+      let okRealFin = false;
+      if (!d.fecha_real_fin || (dReal && dReal.getFullYear() === 2026)) okRealFin = true;
+      
+      let esUniverso = okTipo && okCronoFin && okEstado && okRealFin;
+
+      if (!esUniverso) return;
+      
+      // Programadas: Según mes de crono_fin (solo si es 2026 para la curva)
+      if (dFin && dFin.getFullYear() === 2026) {
         dataByMonth[dFin.getMonth()].Programadas++;
       }
       
-      // Terminadas: Según mes de fecha_real_fin
+      // Terminadas: Según mes de fecha_real_fin (solo 2026)
       if (estado === 'TERMINADO') {
-        const dReal = d.fecha_real_fin ? new Date(d.fecha_real_fin) : null;
-        // Solo sumamos en la curva a las que tienen fecha real en 2026 (o las imputamos a su mes programado si no hay real, pero ideal real)
         if (dReal && dReal.getFullYear() === 2026) {
           dataByMonth[dReal.getMonth()].Terminadas++;
-        } else if (!dReal && dFin) {
-          // Si no tiene fecha real pero está terminada, la asumo en el mes programado
+        } else if (!dReal && dFin && dFin.getFullYear() === 2026) {
           dataByMonth[dFin.getMonth()].Terminadas++;
         }
       }
@@ -230,7 +254,38 @@ export default function Dashboard() {
     return dataByMonth;
   }, [filteredData]);
 
-  // Ranking IDC (Solo sobre Universo 2026)
+  // Categoria Inversion
+  const categoriaData = useMemo(() => {
+    const cats = {};
+    filteredData.forEach(d => {
+      const tc = d.tipo_contrato ? String(d.tipo_contrato).toUpperCase() : '';
+      const estado = d.estado ? String(d.estado).toUpperCase().trim() : '';
+      let dFin = d.crono_fin ? new Date(d.crono_fin) : null;
+      let dReal = d.fecha_real_fin ? new Date(d.fecha_real_fin) : null;
+      let okTipo = (tc.includes('OBRA') || tc.includes('CONVENIO'));
+      let okCronoFin = false;
+      if (!d.crono_fin || (dFin && [2024, 2025, 2026].includes(dFin.getFullYear()))) okCronoFin = true;
+      let okEstado = false;
+      const validEstados = ['POR INICIAR', 'EN EJECUCION', 'EN EJECUCIÓN', 'SUSPENDIDO', 'TERMINADO'];
+      if (!d.estado || validEstados.includes(estado)) okEstado = true;
+      let okRealFin = false;
+      if (!d.fecha_real_fin || (dReal && dReal.getFullYear() === 2026)) okRealFin = true;
+      
+      let esUniverso = okTipo && okCronoFin && okEstado && okRealFin;
+
+      if (!esUniverso) return;
+      
+      const cat = d.categoria_inversion ? String(d.categoria_inversion).trim() : 'Sin Categoría';
+      if (!cats[cat]) cats[cat] = 0;
+      cats[cat]++;
+    });
+
+    return Object.entries(cats)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value);
+  }, [filteredData]);
+
+  // Ranking IDC
   const rankingIDC = useMemo(() => {
     if (localidadFilter !== 'VISIÓN GLOBAL') return [];
     
@@ -240,18 +295,25 @@ export default function Dashboard() {
     LOCALIDADES.forEach(loc => locStats[loc] = { loc, progTotales: 0, termTotales: 0, progVencidas: 0, termVencidas: 0, susp: 0, atrasadas: 0 });
 
     filteredData.forEach(d => {
-      let es2026 = false;
+      const tc = d.tipo_contrato ? String(d.tipo_contrato).toUpperCase() : '';
+      const estado = d.estado ? String(d.estado).toUpperCase().trim() : '';
       let dFin = d.crono_fin ? new Date(d.crono_fin) : null;
-      if (dFin && dFin.getFullYear() === 2026) es2026 = true;
-      else if (d.crono_inicio) {
-        const dIni = new Date(d.crono_inicio);
-        if (dIni.getFullYear() === 2026) es2026 = true;
-      }
+      let dReal = d.fecha_real_fin ? new Date(d.fecha_real_fin) : null;
+      
+      let okTipo = (tc.includes('OBRA') || tc.includes('CONVENIO'));
+      let okCronoFin = false;
+      if (!d.crono_fin || (dFin && [2024, 2025, 2026].includes(dFin.getFullYear()))) okCronoFin = true;
+      let okEstado = false;
+      const validEstados = ['POR INICIAR', 'EN EJECUCION', 'EN EJECUCIÓN', 'SUSPENDIDO', 'TERMINADO'];
+      if (!d.estado || validEstados.includes(estado)) okEstado = true;
+      let okRealFin = false;
+      if (!d.fecha_real_fin || (dReal && dReal.getFullYear() === 2026)) okRealFin = true;
+      
+      let esUniverso = okTipo && okCronoFin && okEstado && okRealFin;
 
-      if (!es2026) return; // Solo universo 2026
+      if (!esUniverso) return;
       if (!d.localidad || !locStats[d.localidad]) return;
       
-      const estado = d.estado ? String(d.estado).toUpperCase() : '';
       const st = locStats[d.localidad];
 
       st.progTotales++;
@@ -261,6 +323,7 @@ export default function Dashboard() {
 
       if (dFin && dFin <= today) {
         st.progVencidas++;
+
         if (estado === 'TERMINADO') st.termVencidas++;
         else st.atrasadas++;
       }
@@ -410,15 +473,20 @@ export default function Dashboard() {
           </p>
         </header>
 
-        {/* Top KPIs (Distritales) */}
-        <div className="kpi-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+        {/* Top KPIs */}
+        <div className="kpi-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
           <div className="glass-panel kpi-card">
             <span className="kpi-title" style={{ color: 'var(--success)' }}>META 2026</span>
-            <div className="kpi-value success">{stats.terminadas} / {stats.programadas}</div>
+            <div className="kpi-value success">{stats.terminadas} / {stats.metaTotal}</div>
             <div style={{ width: '100%', height: '6px', background: 'var(--surface-border)', borderRadius: '3px', marginTop: '8px' }}>
               <div style={{ width: `${Math.min(stats.cumplimiento, 100)}%`, height: '100%', background: 'var(--success)', borderRadius: '3px' }}></div>
             </div>
             <span style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px', fontWeight: '500' }}>{stats.cumplimiento.toFixed(1)}% Cumplido</span>
+          </div>
+
+          <div className="glass-panel kpi-card">
+            <span className="kpi-title" style={{ color: 'var(--primary)' }}>EN EJECUCIÓN</span>
+            <div className="kpi-value" style={{ color: 'var(--primary)' }}>{stats.enEjecucion}</div>
           </div>
 
           <div className="glass-panel kpi-card">
@@ -428,11 +496,8 @@ export default function Dashboard() {
           </div>
 
           <div className="glass-panel kpi-card">
-            <span className="kpi-title" style={{ color: 'var(--text-primary)' }}>% VALOR EJECUTADO (2026)</span>
-            <div className="kpi-value" style={{ fontSize: '28px' }}>{stats.pctFinanciero.toFixed(1)}%</div>
-            <span style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: 'auto' }}>
-              De {formatCurrency(stats.valorTotalProg)} programado en la meta
-            </span>
+            <span className="kpi-title" style={{ color: 'var(--text-primary)' }}>SIN CRONOGRAMA</span>
+            <div className="kpi-value" style={{ fontSize: '28px' }}>{stats.sinCronograma}</div>
           </div>
         </div>
 
@@ -446,10 +511,26 @@ export default function Dashboard() {
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--surface-border)" />
               <XAxis dataKey="name" stroke="var(--text-secondary)" fontSize={12} tickMargin={10} />
               <YAxis stroke="var(--text-secondary)" fontSize={12} />
-              <RechartsTooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} />
+              <RechartsTooltip cursor={{ fill: 'rgba(255, 255, 255, 0.05)' }} contentStyle={{ backgroundColor: '#111', color: '#fff', borderRadius: '8px', border: '1px solid #333', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.5)' }} itemStyle={{ color: '#fff' }} />
               <Legend verticalAlign="top" height={36} wrapperStyle={{ fontSize: '13px', fontWeight: '500' }}/>
               <Bar dataKey="Programadas" fill="var(--info)" radius={[4, 4, 0, 0]} />
               <Bar dataKey="Terminadas" fill="var(--success)" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Chart: Categoría Inversión */}
+        <div className="glass-panel" style={{ padding: '24px', marginBottom: '32px' }}>
+          <h3 style={{ fontSize: '15px', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '24px' }}>
+            Frentes de Obra por Categoría de Inversión
+          </h3>
+          <ResponsiveContainer width="100%" height={320}>
+            <BarChart layout="vertical" data={categoriaData} margin={{ top: 10, right: 30, left: 100, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--surface-border)" />
+              <XAxis type="number" stroke="var(--text-secondary)" fontSize={12} />
+              <YAxis dataKey="name" type="category" stroke="var(--text-secondary)" fontSize={11} width={120} tick={{ fill: 'var(--text-secondary)' }} />
+              <RechartsTooltip cursor={{ fill: 'rgba(255, 255, 255, 0.05)' }} contentStyle={{ backgroundColor: '#111', color: '#fff', borderRadius: '8px', border: '1px solid #333', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.5)' }} itemStyle={{ color: '#fff' }} />
+              <Bar dataKey="value" fill="var(--primary)" radius={[0, 4, 4, 0]} name="Frentes" />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -625,27 +706,37 @@ export default function Dashboard() {
           </div>
           <div style={{ padding: '24px' }}>
             <div style={{ display: 'flex', gap: '24px', marginBottom: '24px' }}>
-              <div style={{ flex: 1, background: 'rgba(220, 38, 38, 0.1)', padding: '16px', borderRadius: '8px', borderLeft: '4px solid var(--danger)' }}>
+              <div style={{ flex: 1, background: 'rgba(255, 255, 255, 0.05)', padding: '16px', borderRadius: '8px', borderLeft: '4px solid var(--info)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <span style={{ color: 'var(--danger)', fontWeight: '600', fontSize: '13px' }}>No acogen Rec. Técnica</span>
-                  <span style={{ color: 'var(--danger)', fontWeight: '800', fontSize: '16px' }}>{alertasStats.noAcogeTec}</span>
+                  <span style={{ color: 'var(--info)', fontWeight: '600', fontSize: '13px' }}>Total Observaciones</span>
+                  <span style={{ color: 'var(--info)', fontWeight: '800', fontSize: '16px' }}>{alertasStats.totalObservaciones}</span>
                 </div>
+                <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Suma de observaciones G y H</div>
               </div>
 
-              <div style={{ flex: 1, background: 'rgba(245, 158, 11, 0.1)', padding: '16px', borderRadius: '8px', borderLeft: '4px solid var(--warning-text)' }}>
+              <div style={{ flex: 1, background: 'rgba(251, 191, 36, 0.1)', padding: '16px', borderRadius: '8px', borderLeft: '4px solid var(--primary)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <span style={{ color: 'var(--primary)', fontWeight: '600', fontSize: '13px' }}>No acogen Rec. Jurídica</span>
-                  <span style={{ color: 'var(--warning-text)', fontWeight: '800', fontSize: '16px' }}>{alertasStats.noAcogeJur}</span>
+                  <span style={{ color: 'var(--primary)', fontWeight: '600', fontSize: '13px' }}>Técnicas (G)</span>
+                  <span style={{ color: 'var(--primary)', fontWeight: '800', fontSize: '16px' }}>{alertasStats.tecAcogidas}</span>
                 </div>
+                <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{alertasStats.tecParcial} acogidas parcialmente</div>
+              </div>
+
+              <div style={{ flex: 1, background: 'rgba(251, 191, 36, 0.1)', padding: '16px', borderRadius: '8px', borderLeft: '4px solid var(--primary-dark)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <span style={{ color: 'var(--primary-dark)', fontWeight: '600', fontSize: '13px' }}>Jurídicas (H)</span>
+                  <span style={{ color: 'var(--primary-dark)', fontWeight: '800', fontSize: '16px' }}>{alertasStats.jurAcogidas}</span>
+                </div>
+                <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{alertasStats.jurParcial} acogidas parcialmente</div>
               </div>
 
               <div style={{ flex: 1, background: 'rgba(251, 191, 36, 0.1)', padding: '16px', borderRadius: '8px', borderLeft: '4px solid var(--success)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <span style={{ color: 'var(--primary)', fontWeight: '600', fontSize: '13px' }}>% Rec. Acogidas Global</span>
-                  <span style={{ color: 'var(--primary-dark)', fontWeight: '800', fontSize: '16px' }}>{alertasStats.pctAcogidas.toFixed(1)}%</span>
+                  <span style={{ color: 'var(--primary)', fontWeight: '600', fontSize: '13px' }}>% Rec. Acogidas</span>
+                  <span style={{ color: 'var(--primary)', fontWeight: '800', fontSize: '16px' }}>{alertasStats.pctAcogidas.toFixed(1)}%</span>
                 </div>
                 <div style={{ fontSize: '11px', color: 'var(--primary)', marginTop: '4px' }}>
-                  {alertasStats.totalAcogidas} acogidas de {alertasStats.totalRecomendaciones} registradas
+                  {alertasStats.totalAcogidas} acogidas de {alertasStats.totalObservaciones}
                 </div>
               </div>
             </div>
@@ -657,8 +748,7 @@ export default function Dashboard() {
                   <tr>
                     <th>Localidad</th>
                     <th>Contrato</th>
-                    <th>Tipo Observación</th>
-                    <th>Observación Pendiente</th>
+                    <th>Tipo Observación Pendiente (Técnica o Jurídica)</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -667,11 +757,10 @@ export default function Dashboard() {
                       <td style={{ fontWeight: 'bold', fontSize: '12px' }}>{al.localidad}</td>
                       <td style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{al.contrato}</td>
                       <td style={{ fontSize: '11px', color: 'var(--danger)', fontWeight: 'bold' }}>{al.tipo}</td>
-                      <td style={{ fontSize: '11px' }}>{al.obs}</td>
                     </tr>
                   ))}
                   {alertasStats.detallePendientes.length === 0 && (
-                    <tr><td colSpan="4" style={{ textAlign: 'center', padding: '24px' }}>No hay alertas activas de Mesa Técnica o Jurídica</td></tr>
+                    <tr><td colSpan="3" style={{ textAlign: 'center', padding: '24px' }}>No hay alertas de Mesa Técnica o Jurídica</td></tr>
                   )}
                 </tbody>
               </table>

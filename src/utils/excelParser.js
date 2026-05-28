@@ -26,7 +26,9 @@ export const parseExcelToDB = async (file, onProgress) => {
           parsedData.push({
             localidad: row['C'] ? String(row['C']).trim().toUpperCase() : null,
             contrato: row['D'] || null,
+            tipo_contrato: row['F'] || null,
             tipo_intervencion: row['BF'] || null,
+            categoria_inversion: row['BD'] || null,
             estado: row['BN'] || null,
             porcentaje_avance: parseFloat(row['BO']) || 0,
             crono_inicio: row['BI'] instanceof Date ? row['BI'].toISOString().split('T')[0] : null,
