@@ -151,8 +151,8 @@ export default function Dashboard() {
       }
     });
 
-    // La meta solicitada es 1700 (se divide si hay filtro local)
-    const metaTotal = localidadFilter === 'VISIÓN GLOBAL' ? 1700 : Math.round(1700 / 20);
+    // La meta es el universo completo filtrado (incluyendo vigencias anteriores y sin cronograma)
+    const metaTotal = universoCount;
     const cumplimiento = metaTotal > 0 ? (terminadas / metaTotal) * 100 : 0;
 
     return {
@@ -341,9 +341,8 @@ export default function Dashboard() {
       
       const st = locStats[d.localidad];
 
-      // Filtro para Programadas a corte: entre 1 de enero 2026 y fecha_corte
-      const inicio2026 = new Date(2026, 0, 1);
-      const isProgCorte = dFin && dFin >= inicio2026 && dFin <= today;
+      // Filtro para Programadas a corte: hasta la fecha_corte (incluye vigencias anteriores)
+      const isProgCorte = dFin && dFin <= today;
 
       if (isProgCorte) {
         st.progTotales++;
@@ -611,7 +610,7 @@ export default function Dashboard() {
               </div>
               <div style={{ padding: '16px 24px', background: 'rgba(255, 255, 255, 0.03)', borderTop: '1px solid var(--surface-border)' }}>
                 <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '11px', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <li><strong>Prog. a corte:</strong> obras con cronograma de finalización entre el 1 de enero de 2026 y la fecha de corte de la matriz.</li>
+                  <li><strong>Prog. a corte:</strong> total de obras con cronograma de finalización estipulado hasta la fecha de corte de la matriz (incluye vigencias anteriores).</li>
                   <li><strong>Terminadas:</strong> obras que registran estado finalizado a la fecha de corte.</li>
                   <li><strong>Suspendidas:</strong> frentes de obra cuyo estado de intervención se encuentra suspendido.</li>
                   <li><strong>Vencidas:</strong> obras con fecha de finalización vencida que no registran finalización a la fecha de corte.</li>
