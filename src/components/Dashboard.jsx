@@ -341,23 +341,20 @@ export default function Dashboard() {
       
       const st = locStats[d.localidad];
 
-      if (dFin && dFin <= today) {
-        // Todo el ranking IDC se basa únicamente en lo programado hasta la fecha de corte
-        st.progTotales++;
-        if (estado === 'TERMINADO') st.termTotales++;
-
-        st.progVencidas++;
-        if (estado === 'TERMINADO') st.termVencidas++;
-        else st.atrasadas++;
-      }
+      st.progTotales++;
+      if (estado === 'TERMINADO') st.termTotales++;
 
       if (estado === 'SUSPENDIDO') st.susp++;
+
+      if (dFin && dFin <= today) {
+        if (estado !== 'TERMINADO') st.atrasadas++;
+      }
     });
 
     return Object.values(locStats).map(st => {
-      const pctTerm = st.progVencidas > 0 ? (st.termVencidas / st.progVencidas) * 100 : 0;
-      const pctSusp = st.progVencidas > 0 ? (st.susp / st.progVencidas) : 0;
-      const pctAtraso = st.progVencidas > 0 ? (st.atrasadas / st.progVencidas) : 0;
+      const pctTerm = st.progTotales > 0 ? (st.termTotales / st.progTotales) * 100 : 0;
+      const pctSusp = st.progTotales > 0 ? (st.susp / st.progTotales) : 0;
+      const pctAtraso = st.progTotales > 0 ? (st.atrasadas / st.progTotales) : 0;
       
       let idc = pctTerm - (pctSusp * 30) - (pctAtraso * 15);
       idc = Math.max(0, Math.min(100, idc));
@@ -585,12 +582,13 @@ export default function Dashboard() {
               </div>
               <div className="table-container" style={{ maxHeight: '400px', overflowY: 'auto' }}>
                 <table>
-                  <thead style={{ position: 'sticky', top: 0, zIndex: 1 }}>
+                  <thead>
                     <tr>
                       <th style={{ width: '40px' }}>#</th>
                       <th>Localidad</th>
                       <th style={{ textAlign: 'center' }}>Prog. Totales</th>
                       <th style={{ textAlign: 'center' }}>Terminadas</th>
+                      <th style={{ textAlign: 'center' }}>Suspendidas</th>
                       <th style={{ textAlign: 'center' }}>Vencidas</th>
                       <th style={{ textAlign: 'right' }}>IDC</th>
                     </tr>
@@ -602,12 +600,13 @@ export default function Dashboard() {
                         <td style={{ fontWeight: '500' }}>{r.loc}</td>
                         <td style={{ textAlign: 'center' }}>{r.progTotales}</td>
                         <td style={{ textAlign: 'center', color: 'var(--success)', fontWeight: 'bold' }}>{r.termTotales}</td>
-                        <td style={{ textAlign: 'center', color: 'var(--danger)' }}>{r.atrasadas}</td>
+                        <td style={{ textAlign: 'center', color: 'var(--warning)', fontWeight: 'bold' }}>{r.susp}</td>
+                        <td style={{ textAlign: 'center', color: 'var(--danger)', fontWeight: 'bold' }}>{r.atrasadas}</td>
                         <td style={{ textAlign: 'right' }}>
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px' }}>
                             <span style={{ 
                               fontWeight: 'bold',
-                              color: r.idc >= 70 ? '#059669' : (r.idc >= 40 ? '#d97706' : '#dc2626')
+                              color: r.idc >= 70 ? '#10b981' : (r.idc >= 40 ? '#f59e0b' : '#ef4444')
                             }}>
                               {r.idc.toFixed(1)}
                             </span>
@@ -816,6 +815,7 @@ export default function Dashboard() {
     </div>
   );
 }
+
 
 
 
