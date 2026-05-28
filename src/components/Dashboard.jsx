@@ -134,12 +134,11 @@ export default function Dashboard() {
       }
     });
 
-    const meta2026 = localidadFilter === 'VISIÓN GLOBAL' ? 1700 : Math.round(1700 / 20);
-    const cumplimiento = meta2026 > 0 ? (terminadas / meta2026) * 100 : 0;
+    const cumplimiento = programadas > 0 ? (terminadas / programadas) * 100 : 0;
     const pctFinanciero = valorProg2026 > 0 ? (valorTerm2026 / valorProg2026) * 100 : 0;
 
     return {
-      meta2026, programadas, terminadas, suspendidas, incumplimiento,
+      programadas, terminadas, suspendidas, incumplimiento,
       cumplimiento, kmTerm, m2Term, mlTerm, huecosTerm, 
       valorTerm: valorTerm2026, valorTotalProg: valorProg2026, pctFinanciero
     };
@@ -222,20 +221,29 @@ export default function Dashboard() {
     const locStats = {};
     const today = new Date(fechaCorte || Date.now());
 
-    LOCALIDADES.forEach(loc => locStats[loc] = { loc, progVencidas: 0, termVencidas: 0, susp: 0, atrasadas: 0 });
+    LOCALIDADES.forEach(loc => locStats[loc] = { loc, progTotales: 0, termTotales: 0, progVencidas: 0, termVencidas: 0, susp: 0, atrasadas: 0 });
 
     filteredData.forEach(d => {
+      let es2026 = false;
       let dFin = d.crono_fin ? new Date(d.crono_fin) : null;
-      if (!dFin || dFin.getFullYear() !== 2026) return; // Solo universo 2026
+      if (dFin && dFin.getFullYear() === 2026) es2026 = true;
+      else if (d.crono_inicio) {
+        const dIni = new Date(d.crono_inicio);
+        if (dIni.getFullYear() === 2026) es2026 = true;
+      }
 
+      if (!es2026) return; // Solo universo 2026
       if (!d.localidad || !locStats[d.localidad]) return;
       
       const estado = d.estado ? String(d.estado).toUpperCase() : '';
       const st = locStats[d.localidad];
 
+      st.progTotales++;
+      if (estado === 'TERMINADO') st.termTotales++;
+
       if (estado === 'SUSPENDIDO') st.susp++;
 
-      if (dFin <= today) {
+      if (dFin && dFin <= today) {
         st.progVencidas++;
         if (estado === 'TERMINADO') st.termVencidas++;
         else st.atrasadas++;
@@ -377,7 +385,7 @@ export default function Dashboard() {
         </header>
 
         {/* Top KPIs (Distritales) */}
-        <div className="kpi-grid">
+        <div className="kpi-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
           <div className="glass-panel kpi-card">
             <span className="kpi-title" style={{ color: 'var(--success)' }}>META 2026</span>
             <div className="kpi-value success">{stats.terminadas} / {stats.programadas}</div>
@@ -391,12 +399,6 @@ export default function Dashboard() {
             <span className="kpi-title" style={{ color: 'var(--danger)' }}>SUSPENDIDAS</span>
             <div className="kpi-value danger">{stats.suspendidas}</div>
             <span style={{ fontSize: '12px', color: 'var(--danger)', marginTop: 'auto', fontWeight: '500' }}>Atención Prioritaria</span>
-          </div>
-
-          <div className="glass-panel kpi-card">
-            <span className="kpi-title" style={{ color: 'purple' }}>INCUMPLIMIENTO</span>
-            <div className="kpi-value" style={{ color: 'purple' }}>{stats.incumplimiento}</div>
-            <span style={{ fontSize: '12px', color: 'purple', marginTop: 'auto', fontWeight: '500' }}>En proceso jurídico</span>
           </div>
 
           <div className="glass-panel kpi-card">
@@ -441,8 +443,9 @@ export default function Dashboard() {
                     <tr>
                       <th style={{ width: '40px' }}>#</th>
                       <th>Localidad</th>
-                      <th style={{ textAlign: 'center' }}>Prog. Vencidas (2026)</th>
+                      <th style={{ textAlign: 'center' }}>Prog. Totales</th>
                       <th style={{ textAlign: 'center' }}>Terminadas</th>
+                      <th style={{ textAlign: 'center' }}>Vencidas</th>
                       <th style={{ textAlign: 'right' }}>IDC</th>
                     </tr>
                   </thead>
@@ -451,8 +454,9 @@ export default function Dashboard() {
                       <tr key={r.loc}>
                         <td style={{ fontWeight: 'bold', color: idx < 3 ? 'var(--primary)' : 'var(--text-secondary)' }}>{idx + 1}</td>
                         <td style={{ fontWeight: '500' }}>{r.loc}</td>
-                        <td style={{ textAlign: 'center' }}>{r.progVencidas}</td>
-                        <td style={{ textAlign: 'center', color: 'var(--success)', fontWeight: 'bold' }}>{r.termVencidas}</td>
+                        <td style={{ textAlign: 'center' }}>{r.progTotales}</td>
+                        <td style={{ textAlign: 'center', color: 'var(--success)', fontWeight: 'bold' }}>{r.termTotales}</td>
+                        <td style={{ textAlign: 'center', color: 'var(--danger)' }}>{r.progVencidas}</td>
                         <td style={{ textAlign: 'right' }}>
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px' }}>
                             <span style={{ 
@@ -477,6 +481,36 @@ export default function Dashboard() {
               </div>
             </div>
           )}
+
+          {/* Obras Suspendidas */}
+          <div className="glass-panel" style={{ padding: '0', overflow: 'hidden' }}>
+            <div style={{ padding: '20px 24px', background: '#f8fafc', borderBottom: '1px solid var(--surface-border)' }}>
+              <h3 style={{ fontSize: '14px', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <AlertTriangle size={18} color="var(--danger)"/> OBRAS SUSPENDIDAS (DETALLE)
+              </h3>
+            </div>
+            <div className="table-container" style={{ maxHeight: '400px', overflowY: 'auto' }}>
+              <table style={{ minWidth: '400px' }}>
+                <thead style={{ position: 'sticky', top: 0, zIndex: 1 }}>
+                  <tr>
+                    <th>Localidad</th>
+                    <th>Contrato / Frente</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {suspendidasList.map((r, idx) => (
+                    <tr key={idx}>
+                      <td style={{ fontSize: '11px', fontWeight: 'bold' }}>{r.localidad}</td>
+                      <td style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{r.contrato}</td>
+                    </tr>
+                  ))}
+                  {suspendidasList.length === 0 && (
+                    <tr><td colSpan="2" style={{ textAlign: 'center', padding: '24px' }}>No hay obras suspendidas</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
 
         {/* 50 Próximas vs 50 Entregadas Recientemente */}
