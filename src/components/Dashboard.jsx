@@ -137,7 +137,20 @@ export default function Dashboard() {
           mlTerm += Number(d.ml) || 0;
           
           let cat = d.categoria_inversion ? String(d.categoria_inversion).trim() : 'Otros';
-          if (cat.toUpperCase() === 'EDIFICACIONES' || cat.toUpperCase() === 'SIN CATEGORÍA' || cat.toUpperCase() === 'SIN CATEGORIA') cat = 'Otros';
+          const catUpper = cat.toUpperCase();
+          if (
+            catUpper === 'EDIFICACIONES' || 
+            catUpper === 'SIN CATEGORÍA' || 
+            catUpper === 'SIN CATEGORIA' ||
+            catUpper === 'BAHIA' ||
+            catUpper === 'BAHÍAS' ||
+            catUpper === 'CASA CULTURA' ||
+            catUpper === 'PUENTES' ||
+            catUpper.includes('MITIGACION') ||
+            catUpper.includes('MITIGACIÓN')
+          ) {
+            cat = 'Otros';
+          }
           terminadasCats[cat] = (terminadasCats[cat] || 0) + 1;
         }
         
@@ -280,7 +293,18 @@ export default function Dashboard() {
       if (!esUniverso) return;
       
       let cat = d.categoria_inversion ? String(d.categoria_inversion).trim() : 'Otros';
-      if (cat.toUpperCase() === 'EDIFICACIONES' || cat.toUpperCase() === 'SIN CATEGORÍA' || cat.toUpperCase() === 'SIN CATEGORIA') {
+      const catUpper = cat.toUpperCase();
+      if (
+        catUpper === 'EDIFICACIONES' || 
+        catUpper === 'SIN CATEGORÍA' || 
+        catUpper === 'SIN CATEGORIA' ||
+        catUpper === 'BAHIA' ||
+        catUpper === 'BAHÍAS' ||
+        catUpper === 'CASA CULTURA' ||
+        catUpper === 'PUENTES' ||
+        catUpper.includes('MITIGACION') ||
+        catUpper.includes('MITIGACIÓN')
+      ) {
         cat = 'Otros';
       }
       
@@ -326,10 +350,12 @@ export default function Dashboard() {
       
       const st = locStats[d.localidad];
 
-      if (dFin && dFin <= today) {
-        st.progTotales++;
-        if (estado === 'TERMINADO') st.termTotales++;
+      // Prog. Totales incluye todo el universo
+      st.progTotales++;
+      if (estado === 'TERMINADO') st.termTotales++;
 
+      // Prog. Vencidas incluye solo las que superaron la fecha límite
+      if (dFin && dFin <= today) {
         st.progVencidas++;
         if (estado === 'TERMINADO') st.termVencidas++;
         else st.atrasadas++;
@@ -625,8 +651,8 @@ export default function Dashboard() {
                   <tr>
                     <th>Localidad</th>
                     <th>Contrato / Frente</th>
-                    <th>Justificación (V)</th>
-                    <th>Fecha (W)</th>
+                    <th>Justificación</th>
+                    <th>Fecha</th>
                   </tr>
                 </thead>
                 <tbody>
