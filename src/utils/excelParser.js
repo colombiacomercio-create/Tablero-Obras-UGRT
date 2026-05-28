@@ -38,7 +38,9 @@ export const parseExcelToDB = async (file, onProgress) => {
             km_carril: parseFloat(row['BX']) || 0,
             m2: parseFloat(row['CD']) || 0,
             ml: parseFloat(row['CE']) || 0,
-            huecos: parseFloat(row['BY']) || 0
+            huecos: parseFloat(row['BY']) || 0,
+            justificacion_suspension: row['V'] || null,
+            fecha_suspension: row['W'] instanceof Date ? row['W'].toISOString().split('T')[0] : (row['W'] || null)
           });
         }
         

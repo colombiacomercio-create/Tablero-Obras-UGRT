@@ -99,7 +99,8 @@ export default function Dashboard() {
   const stats = useMemo(() => {
     let terminadas = 0, suspendidas = 0, enEjecucion = 0, sinCronograma = 0;
     let universoCount = 0;
-    let kmTerm = 0, m2Term = 0, mlTerm = 0, huecosTerm = 0;
+    let kmTerm = 0, m2Term = 0, mlTerm = 0;
+    const terminadasCats = {};
     
     filteredData.forEach(d => {
       const tc = d.tipo_contrato ? String(d.tipo_contrato).toUpperCase() : '';
@@ -134,7 +135,10 @@ export default function Dashboard() {
           kmTerm += Number(d.km_carril) || 0;
           m2Term += Number(d.m2) || 0;
           mlTerm += Number(d.ml) || 0;
-          huecosTerm += Number(d.huecos) || 0;
+          
+          let cat = d.categoria_inversion ? String(d.categoria_inversion).trim() : 'Otros';
+          if (cat.toUpperCase() === 'EDIFICACIONES' || cat.toUpperCase() === 'SIN CATEGORÍA' || cat.toUpperCase() === 'SIN CATEGORIA') cat = 'Otros';
+          terminadasCats[cat] = (terminadasCats[cat] || 0) + 1;
         }
         
         if (estado === 'SUSPENDIDO') suspendidas++;
@@ -149,7 +153,7 @@ export default function Dashboard() {
 
     return {
       universoCount, metaTotal, terminadas, suspendidas, enEjecucion, sinCronograma,
-      cumplimiento, kmTerm, m2Term, mlTerm, huecosTerm
+      cumplimiento, kmTerm, m2Term, mlTerm, terminadasCats
     };
   }, [filteredData, localidadFilter]);
 
@@ -275,13 +279,19 @@ export default function Dashboard() {
 
       if (!esUniverso) return;
       
-      const cat = d.categoria_inversion ? String(d.categoria_inversion).trim() : 'Sin Categoría';
+      let cat = d.categoria_inversion ? String(d.categoria_inversion).trim() : 'Otros';
+      if (cat.toUpperCase() === 'EDIFICACIONES' || cat.toUpperCase() === 'SIN CATEGORÍA' || cat.toUpperCase() === 'SIN CATEGORIA') {
+        cat = 'Otros';
+      }
+      
       if (!cats[cat]) cats[cat] = 0;
       cats[cat]++;
     });
 
+    const colors = ['#fde047', '#facc15', '#eab308', '#ca8a04', '#a16207', '#854d0e', '#713f12', '#422006'];
+    
     return Object.entries(cats)
-      .map(([name, value]) => ({ name, value }))
+      .map(([name, value], i) => ({ name, value, fill: colors[i % colors.length] }))
       .sort((a, b) => b.value - a.value);
   }, [filteredData]);
 
@@ -316,17 +326,16 @@ export default function Dashboard() {
       
       const st = locStats[d.localidad];
 
-      st.progTotales++;
-      if (estado === 'TERMINADO') st.termTotales++;
-
-      if (estado === 'SUSPENDIDO') st.susp++;
-
       if (dFin && dFin <= today) {
-        st.progVencidas++;
+        st.progTotales++;
+        if (estado === 'TERMINADO') st.termTotales++;
 
+        st.progVencidas++;
         if (estado === 'TERMINADO') st.termVencidas++;
         else st.atrasadas++;
       }
+
+      if (estado === 'SUSPENDIDO') st.susp++;
     });
 
     return Object.values(locStats).map(st => {
@@ -374,8 +383,22 @@ export default function Dashboard() {
   const suspendidasList = useMemo(() => {
     return filteredData
       .filter(d => {
-        const est = d.estado ? String(d.estado).toUpperCase() : '';
-        return est === 'SUSPENDIDO';
+        const tc = d.tipo_contrato ? String(d.tipo_contrato).toUpperCase() : '';
+        const estado = d.estado ? String(d.estado).toUpperCase().trim() : '';
+        let dFin = d.crono_fin ? new Date(d.crono_fin) : null;
+        let dReal = d.fecha_real_fin ? new Date(d.fecha_real_fin) : null;
+        let okTipo = (tc.includes('OBRA') || tc.includes('CONVENIO'));
+        let okCronoFin = false;
+        if (!d.crono_fin || (dFin && [2024, 2025, 2026].includes(dFin.getFullYear()))) okCronoFin = true;
+        let okEstado = false;
+        const validEstados = ['POR INICIAR', 'EN EJECUCION', 'EN EJECUCIÓN', 'SUSPENDIDO', 'TERMINADO'];
+        if (!d.estado || validEstados.includes(estado)) okEstado = true;
+        let okRealFin = false;
+        if (!d.fecha_real_fin || (dReal && dReal.getFullYear() === 2026)) okRealFin = true;
+        
+        let esUniverso = okTipo && okCronoFin && okEstado && okRealFin;
+
+        return esUniverso && estado === 'SUSPENDIDO';
       })
       .slice(0, 50);
   }, [filteredData]);
@@ -440,16 +463,12 @@ export default function Dashboard() {
             <span style={{ fontSize: '11px', color: 'var(--text-primary)', fontWeight: 'bold', textTransform: 'uppercase' }}>M² Intervenidos</span>
             <div style={{ fontSize: '24px', fontWeight: '800', color: 'var(--text-primary)' }}>{formatNum(stats.m2Term)} <span style={{ fontSize: '12px' }}>m²</span></div>
           </div>
-          
-          <div style={{ background: 'rgba(245, 158, 11, 0.1)', border: '1px solid #fde68a', padding: '12px', borderRadius: '8px' }}>
-            <span style={{ fontSize: '11px', color: 'var(--primary)', fontWeight: 'bold', textTransform: 'uppercase' }}>Huecos Tapados</span>
-            <div style={{ fontSize: '24px', fontWeight: '800', color: 'var(--primary)' }}>{formatNum(stats.huecosTerm)}</div>
-          </div>
-
-          <div style={{ background: 'rgba(220, 38, 38, 0.1)', border: '1px solid #fecaca', padding: '12px', borderRadius: '8px' }}>
-            <span style={{ fontSize: '11px', color: 'var(--danger)', fontWeight: 'bold', textTransform: 'uppercase' }}>Valor Ejecutado</span>
-            <div style={{ fontSize: '18px', fontWeight: '800', color: 'var(--danger)' }}>{formatCurrency(stats.valorTerm)}</div>
-          </div>
+          {Object.entries(stats.terminadasCats || {}).sort((a,b)=>b[1]-a[1]).map(([cat, val], idx) => (
+            <div key={idx} style={{ background: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--surface-border)', padding: '12px', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '11px', color: 'var(--text-primary)', fontWeight: 'bold', textTransform: 'uppercase' }}>{cat}</span>
+              <div style={{ fontSize: '16px', fontWeight: '800', color: 'var(--primary)' }}>{val}</div>
+            </div>
+          ))}
         </div>
 
         <div style={{ marginTop: 'auto', paddingTop: '24px' }}>
@@ -530,7 +549,11 @@ export default function Dashboard() {
               <XAxis type="number" stroke="var(--text-secondary)" fontSize={12} />
               <YAxis dataKey="name" type="category" stroke="var(--text-secondary)" fontSize={11} width={120} tick={{ fill: 'var(--text-secondary)' }} />
               <RechartsTooltip cursor={{ fill: 'rgba(255, 255, 255, 0.05)' }} contentStyle={{ backgroundColor: '#111', color: '#fff', borderRadius: '8px', border: '1px solid #333', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.5)' }} itemStyle={{ color: '#fff' }} />
-              <Bar dataKey="value" fill="var(--primary)" radius={[0, 4, 4, 0]} name="Frentes" />
+              <Bar dataKey="value" name="Frentes" radius={[0, 4, 4, 0]}>
+                {categoriaData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.fill} />
+                ))}
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -583,7 +606,7 @@ export default function Dashboard() {
               <div style={{ padding: '12px 24px', background: 'rgba(255, 255, 255, 0.03)', borderTop: '1px solid var(--surface-border)' }}>
                 <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-secondary)' }}>
                   <strong>Cálculo del IDC (Índice de Desempeño Compuesto):</strong> Asigna puntajes de 0 a 100 evaluando las obras que ya superaron su fecha de fin. 
-                  Fórmula: <code style={{ background: 'rgba(255, 255, 255, 0.1)', padding: '2px 4px', borderRadius: '4px' }}>% Terminadas - (Castigo Suspendidas × 30) - (Castigo Atrasadas × 15)</code>
+                  Fórmula: <code style={{ background: 'rgba(255, 255, 255, 0.1)', padding: '2px 4px', borderRadius: '4px' }}>% Terminadas - (Deducción Suspendidas × 30) - (Deducción Atrasadas × 15)</code>
                 </p>
               </div>
             </div>
@@ -602,6 +625,8 @@ export default function Dashboard() {
                   <tr>
                     <th>Localidad</th>
                     <th>Contrato / Frente</th>
+                    <th>Justificación (V)</th>
+                    <th>Fecha (W)</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -609,10 +634,12 @@ export default function Dashboard() {
                     <tr key={idx}>
                       <td style={{ fontSize: '11px', fontWeight: 'bold' }}>{r.localidad}</td>
                       <td style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{r.contrato}</td>
+                      <td style={{ fontSize: '11px', color: 'var(--danger)' }}>{r.justificacion_suspension || 'Sin justificación'}</td>
+                      <td style={{ fontSize: '11px', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{r.fecha_suspension || '-'}</td>
                     </tr>
                   ))}
                   {suspendidasList.length === 0 && (
-                    <tr><td colSpan="2" style={{ textAlign: 'center', padding: '24px' }}>No hay obras suspendidas</td></tr>
+                    <tr><td colSpan="4" style={{ textAlign: 'center', padding: '24px' }}>No hay obras suspendidas</td></tr>
                   )}
                 </tbody>
               </table>
