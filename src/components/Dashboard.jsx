@@ -114,7 +114,7 @@ export default function Dashboard() {
       
       // Filtro 2: Cronograma Fin = vacía, 2024, 2025, 2026
       let okCronoFin = false;
-      if (!d.crono_fin || (dFin && [2024, 2025, 2026].includes(dFin.getFullYear()))) okCronoFin = true;
+      if (!d.crono_fin || (dFin && [2023, 2024, 2025, 2026].includes(dFin.getFullYear()))) okCronoFin = true;
       
       // Filtro 3: Estado Intervención
       let okEstado = false;
@@ -242,7 +242,7 @@ export default function Dashboard() {
       
       let okTipo = (tc.includes('OBRA') || tc.includes('CONVENIO'));
       let okCronoFin = false;
-      if (!d.crono_fin || (dFin && [2024, 2025, 2026].includes(dFin.getFullYear()))) okCronoFin = true;
+      if (!d.crono_fin || (dFin && [2023, 2024, 2025, 2026].includes(dFin.getFullYear()))) okCronoFin = true;
       let okEstado = false;
       const validEstados = ['POR INICIAR', 'EN EJECUCION', 'EN EJECUCIÓN', 'SUSPENDIDO', 'TERMINADO'];
       if (!d.estado || validEstados.includes(estado)) okEstado = true;
@@ -281,7 +281,7 @@ export default function Dashboard() {
       let dReal = d.fecha_real_fin ? new Date(d.fecha_real_fin) : null;
       let okTipo = (tc.includes('OBRA') || tc.includes('CONVENIO'));
       let okCronoFin = false;
-      if (!d.crono_fin || (dFin && [2024, 2025, 2026].includes(dFin.getFullYear()))) okCronoFin = true;
+      if (!d.crono_fin || (dFin && [2023, 2024, 2025, 2026].includes(dFin.getFullYear()))) okCronoFin = true;
       let okEstado = false;
       const validEstados = ['POR INICIAR', 'EN EJECUCION', 'EN EJECUCIÓN', 'SUSPENDIDO', 'TERMINADO'];
       if (!d.estado || validEstados.includes(estado)) okEstado = true;
@@ -336,7 +336,7 @@ export default function Dashboard() {
       
       let okTipo = (tc.includes('OBRA') || tc.includes('CONVENIO'));
       let okCronoFin = false;
-      if (!d.crono_fin || (dFin && [2024, 2025, 2026].includes(dFin.getFullYear()))) okCronoFin = true;
+      if (!d.crono_fin || (dFin && [2023, 2024, 2025, 2026].includes(dFin.getFullYear()))) okCronoFin = true;
       let okEstado = false;
       const validEstados = ['POR INICIAR', 'EN EJECUCION', 'EN EJECUCIÓN', 'SUSPENDIDO', 'TERMINADO'];
       if (!d.estado || validEstados.includes(estado)) okEstado = true;
@@ -350,12 +350,11 @@ export default function Dashboard() {
       
       const st = locStats[d.localidad];
 
-      // Prog. Totales incluye todo el universo
-      st.progTotales++;
-      if (estado === 'TERMINADO') st.termTotales++;
-
-      // Prog. Vencidas incluye solo las que superaron la fecha límite
       if (dFin && dFin <= today) {
+        // Todo el ranking IDC se basa únicamente en lo programado hasta la fecha de corte
+        st.progTotales++;
+        if (estado === 'TERMINADO') st.termTotales++;
+
         st.progVencidas++;
         if (estado === 'TERMINADO') st.termVencidas++;
         else st.atrasadas++;
@@ -415,7 +414,7 @@ export default function Dashboard() {
         let dReal = d.fecha_real_fin ? new Date(d.fecha_real_fin) : null;
         let okTipo = (tc.includes('OBRA') || tc.includes('CONVENIO'));
         let okCronoFin = false;
-        if (!d.crono_fin || (dFin && [2024, 2025, 2026].includes(dFin.getFullYear()))) okCronoFin = true;
+        if (!d.crono_fin || (dFin && [2023, 2024, 2025, 2026].includes(dFin.getFullYear()))) okCronoFin = true;
         let okEstado = false;
         const validEstados = ['POR INICIAR', 'EN EJECUCION', 'EN EJECUCIÓN', 'SUSPENDIDO', 'TERMINADO'];
         if (!d.estado || validEstados.includes(estado)) okEstado = true;
