@@ -341,26 +341,29 @@ export default function Dashboard() {
       
       const st = locStats[d.localidad];
 
-      st.progTotales++;
-      if (estado === 'TERMINADO') st.termTotales++;
+      // Filtro para Programadas a corte: entre 1 de enero 2026 y fecha_corte
+      const inicio2026 = new Date(2026, 0, 1);
+      const isProgCorte = dFin && dFin >= inicio2026 && dFin <= today;
 
-      if (estado === 'SUSPENDIDO') st.susp++;
+      if (isProgCorte) {
+        st.progTotales++;
+        if (estado === 'TERMINADO') st.termTotales++;
+      }
 
-      if (dFin && dFin <= today) {
-        if (estado !== 'TERMINADO') st.atrasadas++;
+      if (estado === 'SUSPENDIDO') {
+        st.susp++;
       }
     });
 
     return Object.values(locStats).map(st => {
-      const pctTerm = st.progTotales > 0 ? (st.termTotales / st.progTotales) * 100 : 0;
-      const pctSusp = st.progTotales > 0 ? (st.susp / st.progTotales) : 0;
-      const pctAtraso = st.progTotales > 0 ? (st.atrasadas / st.progTotales) : 0;
-      
-      let idc = pctTerm - (pctSusp * 30) - (pctAtraso * 15);
-      idc = Math.max(0, Math.min(100, idc));
-      
-      return { ...st, idc, pctTerm };
-    }).sort((a, b) => b.idc - a.idc);
+      st.vencidas = st.progTotales - st.termTotales;
+      st.pctTerm = st.progTotales > 0 ? (st.termTotales / st.progTotales) * 100 : 0;
+      st.castigo = st.vencidas + st.susp;
+      return st;
+    }).sort((a, b) => {
+      if (a.castigo !== b.castigo) return a.castigo - b.castigo; // Menor número de vencidas+suspendidas es mejor
+      return b.pctTerm - a.pctTerm; // En caso de empate, mayor % terminadas
+    });
   }, [filteredData, fechaCorte, localidadFilter]);
 
   // Top 50 Próximas Entregas (Solo Universo 2026, Avance > 60% y < 99%)
@@ -586,11 +589,10 @@ export default function Dashboard() {
                     <tr>
                       <th style={{ width: '40px' }}>#</th>
                       <th>Localidad</th>
-                      <th style={{ textAlign: 'center' }}>Prog. Totales</th>
-                      <th style={{ textAlign: 'center' }}>Terminadas</th>
+                      <th style={{ textAlign: 'center' }}>Programadas a corte</th>
+                      <th style={{ textAlign: 'center' }}>Terminadas a la fecha</th>
                       <th style={{ textAlign: 'center' }}>Suspendidas</th>
                       <th style={{ textAlign: 'center' }}>Vencidas</th>
-                      <th style={{ textAlign: 'right' }}>IDC</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -601,28 +603,19 @@ export default function Dashboard() {
                         <td style={{ textAlign: 'center' }}>{r.progTotales}</td>
                         <td style={{ textAlign: 'center', color: 'var(--success)', fontWeight: 'bold' }}>{r.termTotales}</td>
                         <td style={{ textAlign: 'center', color: 'var(--warning)', fontWeight: 'bold' }}>{r.susp}</td>
-                        <td style={{ textAlign: 'center', color: 'var(--danger)', fontWeight: 'bold' }}>{r.atrasadas}</td>
-                        <td style={{ textAlign: 'right' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px' }}>
-                            <span style={{ 
-                              fontWeight: 'bold',
-                              color: r.idc >= 70 ? '#10b981' : (r.idc >= 40 ? '#f59e0b' : '#ef4444')
-                            }}>
-                              {r.idc.toFixed(1)}
-                            </span>
-                            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: r.idc >= 70 ? '#10b981' : (r.idc >= 40 ? '#f59e0b' : '#ef4444') }}></div>
-                          </div>
-                        </td>
+                        <td style={{ textAlign: 'center', color: 'var(--danger)', fontWeight: 'bold' }}>{r.vencidas}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-              <div style={{ padding: '12px 24px', background: 'rgba(255, 255, 255, 0.03)', borderTop: '1px solid var(--surface-border)' }}>
-                <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-secondary)' }}>
-                  <strong>Cálculo del IDC (Índice de Desempeño Compuesto):</strong> Asigna puntajes de 0 a 100 evaluando las obras que ya superaron su fecha de fin. 
-                  Fórmula: <code style={{ background: 'rgba(255, 255, 255, 0.1)', padding: '2px 4px', borderRadius: '4px' }}>% Terminadas - (Deducción Suspendidas × 30) - (Deducción Atrasadas × 15)</code>
-                </p>
+              <div style={{ padding: '16px 24px', background: 'rgba(255, 255, 255, 0.03)', borderTop: '1px solid var(--surface-border)' }}>
+                <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '11px', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <li><strong>Prog. a corte:</strong> obras con cronograma de finalización entre el 1 de enero de 2026 y la fecha de corte de la matriz.</li>
+                  <li><strong>Terminadas:</strong> obras que registran estado finalizado a la fecha de corte.</li>
+                  <li><strong>Suspendidas:</strong> frentes de obra cuyo estado de intervención se encuentra suspendido.</li>
+                  <li><strong>Vencidas:</strong> obras con fecha de finalización vencida que no registran finalización a la fecha de corte.</li>
+                </ul>
               </div>
             </div>
           )}
