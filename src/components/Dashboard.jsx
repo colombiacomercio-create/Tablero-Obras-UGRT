@@ -341,8 +341,9 @@ export default function Dashboard() {
       
       const st = locStats[d.localidad];
 
-      // Filtro para Programadas a corte: hasta la fecha_corte (incluye vigencias anteriores)
-      const isProgCorte = dFin && dFin <= today;
+      // Filtro para Programadas a corte: entre el 1 de enero de 2026 y la fecha_corte
+      const inicio2026 = new Date(2026, 0, 1);
+      const isProgCorte = dFin && dFin >= inicio2026 && dFin <= today;
 
       if (isProgCorte) {
         st.progTotales++;
@@ -354,14 +355,27 @@ export default function Dashboard() {
       }
     });
 
-    return Object.values(locStats).map(st => {
+    return Object.values(locStats)
+      .filter(st => st.progTotales > 0)
+      .map(st => {
       st.vencidas = st.progTotales - st.termTotales;
-      st.pctTerm = st.progTotales > 0 ? (st.termTotales / st.progTotales) * 100 : 0;
-      st.castigo = st.vencidas + st.susp;
+      
+      let pTerm = (st.termTotales / st.progTotales) * 40;
+      let pVenc = (1 - (st.vencidas / st.progTotales)) * 40;
+      let pSusp = (1 - (st.susp / st.progTotales)) * 20;
+
+      pTerm = Math.max(0, Math.min(40, pTerm));
+      pVenc = Math.max(0, Math.min(40, pVenc));
+      pSusp = Math.max(0, Math.min(20, pSusp));
+
+      st.puntajeTotal = pTerm + pVenc + pSusp;
+
       return st;
     }).sort((a, b) => {
-      if (a.castigo !== b.castigo) return a.castigo - b.castigo; // Menor número de vencidas+suspendidas es mejor
-      return b.pctTerm - a.pctTerm; // En caso de empate, mayor % terminadas
+      if (a.puntajeTotal !== b.puntajeTotal) return b.puntajeTotal - a.puntajeTotal; // Mayor puntaje es mejor
+      if (a.termTotales !== b.termTotales) return b.termTotales - a.termTotales; // Mayor terminadas
+      if (a.vencidas !== b.vencidas) return a.vencidas - b.vencidas; // Menor vencidas
+      return a.susp - b.susp; // Menor suspendidas
     });
   }, [filteredData, fechaCorte, localidadFilter]);
 
@@ -579,7 +593,7 @@ export default function Dashboard() {
             <div className="glass-panel" style={{ padding: '0', overflow: 'hidden' }}>
               <div style={{ padding: '20px 24px', background: 'rgba(255, 255, 255, 0.03)', borderBottom: '1px solid var(--surface-border)' }}>
                 <h3 style={{ fontSize: '14px', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Target size={18} color="var(--primary)"/> RANKING 1: DESEMPEÑO COMPUESTO (IDC) SOBRE META 2026
+                  <Target size={18} color="var(--primary)"/> RANKING CUMPLIMIENTO 2026
                 </h3>
               </div>
               <div className="table-container" style={{ maxHeight: '400px', overflowY: 'auto' }}>
@@ -588,10 +602,11 @@ export default function Dashboard() {
                     <tr>
                       <th style={{ width: '40px' }}>#</th>
                       <th>Localidad</th>
-                      <th style={{ textAlign: 'center' }}>Programadas a corte</th>
-                      <th style={{ textAlign: 'center' }}>Terminadas a la fecha</th>
+                      <th style={{ textAlign: 'center' }}>Prog. a corte</th>
+                      <th style={{ textAlign: 'center' }}>Terminadas</th>
                       <th style={{ textAlign: 'center' }}>Suspendidas</th>
                       <th style={{ textAlign: 'center' }}>Vencidas</th>
+                      <th style={{ textAlign: 'right' }}>Puntaje total</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -603,18 +618,18 @@ export default function Dashboard() {
                         <td style={{ textAlign: 'center', color: 'var(--success)', fontWeight: 'bold' }}>{r.termTotales}</td>
                         <td style={{ textAlign: 'center', color: 'var(--warning)', fontWeight: 'bold' }}>{r.susp}</td>
                         <td style={{ textAlign: 'center', color: 'var(--danger)', fontWeight: 'bold' }}>{r.vencidas}</td>
+                        <td style={{ textAlign: 'right', fontWeight: '800', color: 'var(--primary)', fontSize: '14px' }}>
+                          {r.puntajeTotal.toFixed(1)}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
               <div style={{ padding: '16px 24px', background: 'rgba(255, 255, 255, 0.03)', borderTop: '1px solid var(--surface-border)' }}>
-                <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '11px', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <li><strong>Prog. a corte:</strong> total de obras con cronograma de finalización estipulado hasta la fecha de corte de la matriz (incluye vigencias anteriores).</li>
-                  <li><strong>Terminadas:</strong> obras que registran estado finalizado a la fecha de corte.</li>
-                  <li><strong>Suspendidas:</strong> frentes de obra cuyo estado de intervención se encuentra suspendido.</li>
-                  <li><strong>Vencidas:</strong> obras con fecha de finalización vencida que no registran finalización a la fecha de corte.</li>
-                </ul>
+                <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-secondary)' }}>
+                  El ranking se calcula sobre 100 puntos. Las obras terminadas otorgan hasta 40 puntos; las vencidas descuentan hasta 40 puntos; y las suspendidas descuentan hasta 20 puntos. Una localidad obtiene mejor puntaje cuando termina más obras, tiene menos vencidas y menos suspendidas.
+                </p>
               </div>
             </div>
           )}
