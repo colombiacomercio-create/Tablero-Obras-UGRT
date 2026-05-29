@@ -102,9 +102,10 @@ export default function Dashboard() {
 
   const filteredAlertas = useMemo(() => {
     if (localidadFilter === 'VISIÓN GLOBAL') return alertas;
+    const normalizar = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
     return alertas.filter(a => {
-      const loc = a.localidad ? String(a.localidad).trim().toUpperCase() : null;
-      return loc === localidadFilter;
+      const loc = a.localidad ? normalizar(String(a.localidad)) : null;
+      return loc === normalizar(localidadFilter);
     });
   }, [alertas, localidadFilter]);
 
@@ -166,9 +167,18 @@ export default function Dashboard() {
       locMap[loc] = { loc, alertasCount: 0, si: 0, no: 0, vacio: 0 };
     });
 
+    const normalizar = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
+
     filteredAlertas.forEach(a => {
-      const loc = a.localidad ? String(a.localidad).trim().toUpperCase() : null;
-      if (!loc || !locMap[loc]) return;
+      let rawLoc = a.localidad ? normalizar(String(a.localidad)) : null;
+      
+      let matchedKey = null;
+      if (rawLoc) {
+        matchedKey = Object.keys(locMap).find(k => normalizar(k) === rawLoc);
+      }
+      
+      if (!matchedKey) return;
+      const loc = matchedKey;
       
       const valTec = a.observacion_tecnica ? String(a.observacion_tecnica).trim() : '';
       const valJur = a.observacion_juridica ? String(a.observacion_juridica).trim() : '';
@@ -340,9 +350,18 @@ export default function Dashboard() {
       const estado = d.estado ? String(d.estado).toUpperCase().trim() : '';
       let dFin = d.crono_fin ? new Date(d.crono_fin) : null;
       
-      if (!d.localidad || !locStats[d.localidad]) return;
+      const normalizar = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
+      let rawLoc = d.localidad ? normalizar(String(d.localidad)) : null;
       
-      const st = locStats[d.localidad];
+      // Buscar la llave correcta en locStats comparando de forma normalizada
+      let matchedKey = null;
+      if (rawLoc) {
+        matchedKey = Object.keys(locStats).find(k => normalizar(k) === rawLoc);
+      }
+      
+      if (!matchedKey) return;
+      
+      const st = locStats[matchedKey];
       st.universoTotal++;
 
       // Filtro para Programadas a corte: entre el 1 de enero de 2026 y la fecha_corte

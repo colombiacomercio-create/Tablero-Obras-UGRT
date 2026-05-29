@@ -1,0 +1,346 @@
+{
+  "rankingIDC": [
+    {
+      "loc": "USME",
+      "univ": 237,
+      "prog": 26,
+      "term": 25,
+      "susp": 0,
+      "venc": 1,
+      "pct": 96.15384615384616
+    },
+    {
+      "loc": "RAFAEL URIBE URIBE",
+      "univ": 273,
+      "prog": 16,
+      "term": 12,
+      "susp": 2,
+      "venc": 4,
+      "pct": 75
+    },
+    {
+      "loc": "TEUSAQUILLO",
+      "univ": 72,
+      "prog": 11,
+      "term": 8,
+      "susp": 0,
+      "venc": 3,
+      "pct": 72.72727272727273
+    },
+    {
+      "loc": "PUENTE ARANDA",
+      "univ": 140,
+      "prog": 32,
+      "term": 21,
+      "susp": 0,
+      "venc": 11,
+      "pct": 65.625
+    },
+    {
+      "loc": "BARRIOS UNIDOS",
+      "univ": 188,
+      "prog": 11,
+      "term": 6,
+      "susp": 0,
+      "venc": 5,
+      "pct": 54.54545454545454
+    },
+    {
+      "loc": "KENNEDY",
+      "univ": 361,
+      "prog": 52,
+      "term": 27,
+      "susp": 0,
+      "venc": 25,
+      "pct": 51.92307692307693
+    },
+    {
+      "loc": "SUMAPAZ",
+      "univ": 330,
+      "prog": 36,
+      "term": 14,
+      "susp": 9,
+      "venc": 22,
+      "pct": 38.88888888888889
+    },
+    {
+      "loc": "SUBA",
+      "univ": 1272,
+      "prog": 234,
+      "term": 82,
+      "susp": 4,
+      "venc": 152,
+      "pct": 35.04273504273504
+    },
+    {
+      "loc": "TUNJUELITO",
+      "univ": 47,
+      "prog": 11,
+      "term": 3,
+      "susp": 2,
+      "venc": 8,
+      "pct": 27.27272727272727
+    },
+    {
+      "loc": "BOSA",
+      "univ": 457,
+      "prog": 97,
+      "term": 16,
+      "susp": 0,
+      "venc": 81,
+      "pct": 16.49484536082474
+    },
+    {
+      "loc": "CANDELARIA",
+      "univ": 35,
+      "prog": 10,
+      "term": 1,
+      "susp": 11,
+      "venc": 9,
+      "pct": 10
+    },
+    {
+      "loc": "ANTONIO NARI�O",
+      "univ": 0,
+      "prog": 0,
+      "term": 0,
+      "susp": 0,
+      "venc": 0,
+      "pct": 0
+    },
+    {
+      "loc": "CIUDAD BOL�VAR",
+      "univ": 0,
+      "prog": 0,
+      "term": 0,
+      "susp": 0,
+      "venc": 0,
+      "pct": 0
+    },
+    {
+      "loc": "ENGATIV�",
+      "univ": 0,
+      "prog": 0,
+      "term": 0,
+      "susp": 0,
+      "venc": 0,
+      "pct": 0
+    },
+    {
+      "loc": "FONTIB�N",
+      "univ": 0,
+      "prog": 0,
+      "term": 0,
+      "susp": 0,
+      "venc": 0,
+      "pct": 0
+    },
+    {
+      "loc": "LOS M�RTIRES",
+      "univ": 0,
+      "prog": 0,
+      "term": 0,
+      "susp": 0,
+      "venc": 0,
+      "pct": 0
+    },
+    {
+      "loc": "SAN CRIST�BAL",
+      "univ": 0,
+      "prog": 0,
+      "term": 0,
+      "susp": 0,
+      "venc": 0,
+      "pct": 0
+    },
+    {
+      "loc": "SANTA FE",
+      "univ": 147,
+      "prog": 0,
+      "term": 0,
+      "susp": 0,
+      "venc": 0,
+      "pct": 0
+    },
+    {
+      "loc": "USAQU�N",
+      "univ": 0,
+      "prog": 0,
+      "term": 0,
+      "susp": 0,
+      "venc": 0,
+      "pct": 0
+    },
+    {
+      "loc": "CHAPINERO",
+      "univ": 48,
+      "prog": 27,
+      "term": 0,
+      "susp": 20,
+      "venc": 27,
+      "pct": 0
+    }
+  ],
+  "alertasResumen": [
+    {
+      "loc": "SUMAPAZ",
+      "count": 3,
+      "si": 4,
+      "no": 1,
+      "vacio": 1,
+      "pct": 66.66666666666666
+    },
+    {
+      "loc": "USME",
+      "count": 5,
+      "si": 6,
+      "no": 3,
+      "vacio": 1,
+      "pct": 60
+    },
+    {
+      "loc": "BARRIOS UNIDOS",
+      "count": 9,
+      "si": 9,
+      "no": 0,
+      "vacio": 9,
+      "pct": 50
+    },
+    {
+      "loc": "KENNEDY",
+      "count": 7,
+      "si": 6,
+      "no": 8,
+      "vacio": 0,
+      "pct": 42.857142857142854
+    },
+    {
+      "loc": "SUBA",
+      "count": 12,
+      "si": 10,
+      "no": 1,
+      "vacio": 13,
+      "pct": 41.66666666666667
+    },
+    {
+      "loc": "RAFAEL URIBE URIBE",
+      "count": 5,
+      "si": 4,
+      "no": 3,
+      "vacio": 3,
+      "pct": 40
+    },
+    {
+      "loc": "TEUSAQUILLO",
+      "count": 9,
+      "si": 7,
+      "no": 0,
+      "vacio": 11,
+      "pct": 38.88888888888889
+    },
+    {
+      "loc": "TUNJUELITO",
+      "count": 2,
+      "si": 1,
+      "no": 1,
+      "vacio": 2,
+      "pct": 25
+    },
+    {
+      "loc": "SANTA FE",
+      "count": 9,
+      "si": 4,
+      "no": 2,
+      "vacio": 12,
+      "pct": 22.22222222222222
+    },
+    {
+      "loc": "BOSA",
+      "count": 28,
+      "si": 11,
+      "no": 5,
+      "vacio": 40,
+      "pct": 19.642857142857142
+    },
+    {
+      "loc": "CHAPINERO",
+      "count": 10,
+      "si": 2,
+      "no": 14,
+      "vacio": 4,
+      "pct": 10
+    },
+    {
+      "loc": "PUENTE ARANDA",
+      "count": 11,
+      "si": 1,
+      "no": 4,
+      "vacio": 17,
+      "pct": 4.545454545454546
+    },
+    {
+      "loc": "ANTONIO NARI�O",
+      "count": 0,
+      "si": 0,
+      "no": 0,
+      "vacio": 0,
+      "pct": 0
+    },
+    {
+      "loc": "CANDELARIA",
+      "count": 3,
+      "si": 0,
+      "no": 3,
+      "vacio": 3,
+      "pct": 0
+    },
+    {
+      "loc": "CIUDAD BOL�VAR",
+      "count": 0,
+      "si": 0,
+      "no": 0,
+      "vacio": 0,
+      "pct": 0
+    },
+    {
+      "loc": "ENGATIV�",
+      "count": 0,
+      "si": 0,
+      "no": 0,
+      "vacio": 0,
+      "pct": 0
+    },
+    {
+      "loc": "FONTIB�N",
+      "count": 0,
+      "si": 0,
+      "no": 0,
+      "vacio": 0,
+      "pct": 0
+    },
+    {
+      "loc": "LOS M�RTIRES",
+      "count": 0,
+      "si": 0,
+      "no": 0,
+      "vacio": 0,
+      "pct": 0
+    },
+    {
+      "loc": "SAN CRIST�BAL",
+      "count": 0,
+      "si": 0,
+      "no": 0,
+      "vacio": 0,
+      "pct": 0
+    },
+    {
+      "loc": "USAQU�N",
+      "count": 0,
+      "si": 0,
+      "no": 0,
+      "vacio": 0,
+      "pct": 0
+    }
+  ]
+}
