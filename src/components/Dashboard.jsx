@@ -169,10 +169,13 @@ export default function Dashboard() {
     const detallePendientes = [];
     
     filteredAlertas.forEach(a => {
-      const hasTec = !!a.observacion_tecnica;
-      const hasJur = !!a.observacion_juridica;
+      const valTec = a.observacion_tecnica ? String(a.observacion_tecnica).trim() : '';
+      const valJur = a.observacion_juridica ? String(a.observacion_juridica).trim() : '';
       
-      if (!hasTec && !hasJur) return; // Only process rows with observations
+      const hasTec = valTec.length > 0 && valTec !== '0' && valTec.toLowerCase() !== 'n/a';
+      const hasJur = valJur.length > 0 && valJur !== '0' && valJur.toLowerCase() !== 'n/a';
+      
+      if (!hasTec && !hasJur) return; // Only process rows with valid observations
 
       const tec = a.acogio_tecnica ? String(a.acogio_tecnica).trim().toUpperCase() : '';
       const jur = a.acogio_juridica ? String(a.acogio_juridica).trim().toUpperCase() : '';
@@ -206,7 +209,7 @@ export default function Dashboard() {
       if (tienePendiente) {
         detallePendientes.push({
           localidad: a.localidad || 'Sin dato',
-          contrato: a.contrato || 'Sin contrato',
+          contrato: a.contrato || a.numero_contrato || 'Sin contrato',
           tipo: tipoPendiente.join(' y '),
           obs: obsPendiente.join(' | ') || 'Sin observación específica'
         });
@@ -401,7 +404,7 @@ export default function Dashboard() {
 
   // Tabla Suspendidas
   const suspendidasList = useMemo(() => {
-    return filteredData
+    const list = filteredData
       .filter(d => {
         const tc = d.tipo_contrato ? String(d.tipo_contrato).toUpperCase() : '';
         const estado = d.estado ? String(d.estado).toUpperCase().trim() : '';
@@ -419,8 +422,20 @@ export default function Dashboard() {
         let esUniverso = okTipo && okCronoFin && okEstado && okRealFin;
 
         return esUniverso && estado === 'SUSPENDIDO';
-      })
-      .slice(0, 50);
+      });
+
+    // Agrupar por contrato
+    const grouped = {};
+    list.forEach(d => {
+      const c = d.contrato || d.numero_contrato || d.id_frente || 'Sin contrato';
+      if (!grouped[c]) {
+        grouped[c] = { ...d, frentes_count: 1 };
+      } else {
+        grouped[c].frentes_count++;
+      }
+    });
+
+    return Object.values(grouped).slice(0, 50);
   }, [filteredData]);
 
   const formatCurrency = (val) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(val);
@@ -640,21 +655,23 @@ export default function Dashboard() {
                 <thead style={{ position: 'sticky', top: 0, zIndex: 1 }}>
                   <tr>
                     <th>Localidad</th>
-                    <th>Contrato / Frente</th>
+                    <th>Contrato (Frentes)</th>
                     <th>Justificación</th>
                     <th>Fecha</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {suspendidasList.map((r, idx) => (
-                    <tr key={idx}>
-                      <td style={{ fontSize: '11px', fontWeight: 'bold' }}>{r.localidad}</td>
-                      <td style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{r.contrato}</td>
-                      <td style={{ fontSize: '11px', color: 'var(--danger)' }}>{r.justificacion_suspension || 'Sin justificación'}</td>
-                      <td style={{ fontSize: '11px', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{r.fecha_suspension || '-'}</td>
+                  {suspendidasList.length > 0 ? suspendidasList.map((d, i) => (
+                    <tr key={i}>
+                      <td style={{ fontWeight: '500' }}>{d.localidad}</td>
+                      <td>
+                        <strong style={{ color: 'var(--text-primary)' }}>{d.contrato || d.numero_contrato || 'Sin contrato'}</strong>
+                        {d.frentes_count > 1 && <span style={{ marginLeft: '6px', fontSize: '11px', background: 'var(--surface-border)', padding: '2px 6px', borderRadius: '4px', color: 'var(--text-secondary)' }}>({d.frentes_count} frentes)</span>}
+                      </td>
+                      <td style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{d.justificacion_suspension || 'Sin justificación registrada'}</td>
+                      <td style={{ fontSize: '12px' }}>{d.fecha_suspension || 'N/A'}</td>
                     </tr>
-                  ))}
-                  {suspendidasList.length === 0 && (
+                  )) : (
                     <tr><td colSpan="4" style={{ textAlign: 'center', padding: '24px' }}>No hay obras suspendidas</td></tr>
                   )}
                 </tbody>
