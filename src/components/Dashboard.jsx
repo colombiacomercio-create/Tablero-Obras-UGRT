@@ -101,7 +101,10 @@ export default function Dashboard() {
 
   const filteredAlertas = useMemo(() => {
     if (localidadFilter === 'VISIÓN GLOBAL') return alertas;
-    return alertas.filter(a => a.localidad === localidadFilter);
+    return alertas.filter(a => {
+      const loc = a.localidad ? String(a.localidad).trim().toUpperCase() : null;
+      return loc === localidadFilter;
+    });
   }, [alertas, localidadFilter]);
 
   // Main KPIs (Paridad Matemática 1:1 con Excel)
@@ -163,7 +166,7 @@ export default function Dashboard() {
     });
 
     filteredAlertas.forEach(a => {
-      const loc = a.localidad;
+      const loc = a.localidad ? String(a.localidad).trim().toUpperCase() : null;
       if (!loc || !locMap[loc]) return;
       
       const valTec = a.observacion_tecnica ? String(a.observacion_tecnica).trim() : '';
