@@ -100,16 +100,9 @@ export default function Dashboard() {
   }, [data, localidadFilter]);
 
   const filteredAlertas = useMemo(() => {
-    // Cruzamos las alertas con el universo validado de obras
-    const frentesValidos = new Set(filteredData.map(d => d.id_frente || d.id));
-    const alertasValidas = alertas.filter(a => {
-      const id = a.id_frente || a.id;
-      return frentesValidos.has(id);
-    });
-
-    if (localidadFilter === 'VISIÓN GLOBAL') return alertasValidas;
-    return alertasValidas.filter(a => a.localidad === localidadFilter);
-  }, [alertas, filteredData, localidadFilter]);
+    if (localidadFilter === 'VISIÓN GLOBAL') return alertas;
+    return alertas.filter(a => a.localidad === localidadFilter);
+  }, [alertas, localidadFilter]);
 
   // Main KPIs (Paridad Matemática 1:1 con Excel)
   const stats = useMemo(() => {
