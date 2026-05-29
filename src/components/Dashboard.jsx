@@ -329,10 +329,9 @@ export default function Dashboard() {
     });
 
     return Object.values(locStats)
-      .filter(st => st.progTotales > 0)
       .map(st => {
       st.vencidas = st.progTotales - st.termTotales;
-      st.puntajeTotal = (st.termTotales / st.progTotales) * 100;
+      st.puntajeTotal = st.progTotales > 0 ? (st.termTotales / st.progTotales) * 100 : 0;
       return st;
     }).sort((a, b) => {
       if (a.puntajeTotal !== b.puntajeTotal) return b.puntajeTotal - a.puntajeTotal; // Mayor % es mejor
