@@ -100,9 +100,16 @@ export default function Dashboard() {
   }, [data, localidadFilter]);
 
   const filteredAlertas = useMemo(() => {
-    if (localidadFilter === 'VISIÓN GLOBAL') return alertas;
-    return alertas.filter(a => a.localidad === localidadFilter);
-  }, [alertas, localidadFilter]);
+    // Cruzamos las alertas con el universo validado de obras
+    const frentesValidos = new Set(filteredData.map(d => d.id_frente || d.id));
+    const alertasValidas = alertas.filter(a => {
+      const id = a.id_frente || a.id;
+      return frentesValidos.has(id);
+    });
+
+    if (localidadFilter === 'VISIÓN GLOBAL') return alertasValidas;
+    return alertasValidas.filter(a => a.localidad === localidadFilter);
+  }, [alertas, filteredData, localidadFilter]);
 
   // Main KPIs (Paridad Matemática 1:1 con Excel)
   const stats = useMemo(() => {
@@ -157,23 +164,12 @@ export default function Dashboard() {
   }, [filteredData, localidadFilter]);
 
   const alertasResumen = useMemo(() => {
-    // Agrupar por contrato para evitar inflar conteos por frentes duplicados
-    const alertasPorContrato = {};
-    filteredAlertas.forEach(a => {
-      const loc = a.localidad || 'Sin localidad';
-      const c = a.contrato || a.numero_contrato || a.id_frente || 'Sin contrato';
-      const key = `${loc}-${c}`;
-      if (!alertasPorContrato[key]) {
-        alertasPorContrato[key] = a;
-      }
-    });
-
     const locMap = {};
     LOCALIDADES.forEach(loc => {
-      locMap[loc] = { loc, contratosCount: 0, si: 0, no: 0, vacio: 0 };
+      locMap[loc] = { loc, alertasCount: 0, si: 0, no: 0, vacio: 0 };
     });
 
-    Object.values(alertasPorContrato).forEach(a => {
+    filteredAlertas.forEach(a => {
       const loc = a.localidad;
       if (!loc || !locMap[loc]) return;
       
@@ -182,25 +178,25 @@ export default function Dashboard() {
       const hasTec = valTec.length > 0 && valTec !== '0' && valTec.toLowerCase() !== 'n/a';
       const hasJur = valJur.length > 0 && valJur !== '0' && valJur.toLowerCase() !== 'n/a';
       
-      if (!hasTec && !hasJur) return; // Si no hay observación válida en técnica ni jurídica, ignorar
+      if (!hasTec && !hasJur) return; 
       
-      locMap[loc].contratosCount++;
+      locMap[loc].alertasCount++;
 
       const checkField = (fieldStr) => {
         const val = fieldStr ? String(fieldStr).trim().toUpperCase() : '';
         if (val === 'SI' || val === 'SÍ') locMap[loc].si++;
         else if (val === 'NO') locMap[loc].no++;
-        else locMap[loc].vacio++; // Parcialmente, vacío u otro va a "Pendiente"
+        else locMap[loc].vacio++; 
       };
 
       checkField(a.acogio_tecnica);
       checkField(a.acogio_juridica);
     });
 
-    let totalContratos = 0, totalSi = 0, totalNo = 0, totalVacio = 0;
+    let totalAlertas = 0, totalSi = 0, totalNo = 0, totalVacio = 0;
 
     let resultList = Object.values(locMap).map(st => {
-      const totalPosibles = st.contratosCount * 2; // Matemática del Excel
+      const totalPosibles = st.alertasCount * 2; 
       const pct = totalPosibles > 0 ? (st.si / totalPosibles) * 100 : 0;
       return { ...st, pct };
     });
@@ -210,18 +206,18 @@ export default function Dashboard() {
     }
 
     resultList.forEach(st => {
-      totalContratos += st.contratosCount;
+      totalAlertas += st.alertasCount;
       totalSi += st.si;
       totalNo += st.no;
       totalVacio += st.vacio;
     });
 
     const totales = {
-      contratosCount: totalContratos,
+      alertasCount: totalAlertas,
       si: totalSi,
       no: totalNo,
       vacio: totalVacio,
-      pct: (totalContratos * 2) > 0 ? (totalSi / (totalContratos * 2)) * 100 : 0
+      pct: (totalAlertas * 2) > 0 ? (totalSi / (totalAlertas * 2)) * 100 : 0
     };
 
     return { list: resultList, totales };
@@ -719,13 +715,6 @@ export default function Dashboard() {
 
         </div>
 
-        {/* Alertas (Movidas a la parte inferior) */}
-        <div className="glass-panel" style={{ padding: '0', gridColumn: '1 / -1' }}>
-          <div style={{ padding: '20px 24px', background: 'rgba(255, 255, 255, 0.03)', borderBottom: '1px solid var(--surface-border)' }}>
-            <h3 style={{ fontSize: '14px', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <AlertTriangle size={18} color="var(--warning-text)"/> ALERTAS MESA TÉCNICA Y JURÍDICA (DETALLE)
-            </h3>
-          </div>
           <div className="glass-panel" style={{ padding: '0', gridColumn: '1 / -1' }}>
             <div style={{ padding: '20px 24px', background: 'rgba(255, 255, 255, 0.03)', borderBottom: '1px solid var(--surface-border)' }}>
               <h3 style={{ fontSize: '14px', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -738,7 +727,7 @@ export default function Dashboard() {
                 <thead style={{ position: 'sticky', top: 0, zIndex: 1 }}>
                   <tr>
                     <th style={{ backgroundColor: '#1e3a5f', color: '#fff', border: '1px solid #334155' }}>Alcaldía Local</th>
-                    <th style={{ backgroundColor: '#1e3a5f', color: '#fff', textAlign: 'center', border: '1px solid #334155', width: '130px' }}>Total Contratos con observaciones</th>
+                    <th style={{ backgroundColor: '#1e3a5f', color: '#fff', textAlign: 'center', border: '1px solid #334155', width: '130px' }}>Total Frentes con observaciones</th>
                     <th style={{ backgroundColor: '#4b7535', color: '#fff', textAlign: 'center', border: '1px solid #334155' }}>Observaciones (SI)</th>
                     <th style={{ backgroundColor: '#4b7535', color: '#fff', textAlign: 'center', border: '1px solid #334155' }}>Acogidas (NO)</th>
                     <th style={{ backgroundColor: '#777777', color: '#fff', textAlign: 'center', border: '1px solid #334155' }}>Pendiente</th>
@@ -763,7 +752,7 @@ export default function Dashboard() {
                     return (
                       <tr key={idx}>
                         <td style={{ border: '1px solid #334155', padding: '8px' }}>{al.loc}</td>
-                        <td style={{ textAlign: 'center', border: '1px solid #334155', padding: '8px' }}>{al.contratosCount}</td>
+                        <td style={{ textAlign: 'center', border: '1px solid #334155', padding: '8px' }}>{al.alertasCount}</td>
                         <td style={{ textAlign: 'center', border: '1px solid #334155', padding: '8px' }}>{al.si}</td>
                         <td style={{ textAlign: 'center', border: '1px solid #334155', padding: '8px' }}>{al.no}</td>
                         <td style={{ textAlign: 'center', border: '1px solid #334155', padding: '8px' }}>{al.vacio}</td>
@@ -778,7 +767,7 @@ export default function Dashboard() {
                   })}
                   <tr style={{ backgroundColor: '#1e3a5f', color: '#fff', fontWeight: 'bold' }}>
                     <td style={{ border: '1px solid #334155', padding: '8px' }}>TOTAL</td>
-                    <td style={{ textAlign: 'center', border: '1px solid #334155', padding: '8px' }}>{alertasResumen.totales.contratosCount}</td>
+                    <td style={{ textAlign: 'center', border: '1px solid #334155', padding: '8px' }}>{alertasResumen.totales.alertasCount}</td>
                     <td style={{ textAlign: 'center', border: '1px solid #334155', padding: '8px' }}>{alertasResumen.totales.si}</td>
                     <td style={{ textAlign: 'center', border: '1px solid #334155', padding: '8px' }}>{alertasResumen.totales.no}</td>
                     <td style={{ textAlign: 'center', border: '1px solid #334155', padding: '8px' }}>{alertasResumen.totales.vacio}</td>
@@ -792,7 +781,7 @@ export default function Dashboard() {
             
             <div style={{ padding: '16px 24px', background: 'rgba(255, 255, 255, 0.03)', borderTop: '1px solid var(--surface-border)' }}>
               <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-secondary)' }}>
-                * En sintonía con el libro de Excel, los encabezados <strong>Observaciones</strong> y <strong>Acogidas</strong> corresponden matemáticamente al conteo de los registros "SI" y "NO" respectivamente. El total de recomendaciones (% Acogidas) asume un máximo de 2 campos (técnico y jurídico) por cada contrato registrado.
+                * En sintonía con el libro de Excel, los encabezados <strong>Observaciones</strong> y <strong>Acogidas</strong> corresponden matemáticamente al conteo de los registros "SI" y "NO" respectivamente. El total de recomendaciones (% Acogidas) asume un máximo de 2 campos (técnico y jurídico) por cada frente de obra registrado en esta matriz.
               </p>
             </div>
           </div>
