@@ -103,22 +103,9 @@ export default function Dashboard() {
     const terminadasCats = {};
     
     filteredData.forEach(d => {
-      const tc = d.tipo_contrato ? String(d.tipo_contrato).toUpperCase() : '';
       const estado = d.estado ? String(d.estado).toUpperCase().trim() : '';
-      const tipoInt = d.tipo_intervencion ? String(d.tipo_intervencion).toUpperCase().trim() : '';
       
-      let dFin = d.crono_fin ? new Date(d.crono_fin) : null;
-      let dReal = d.fecha_real_fin ? new Date(d.fecha_real_fin) : null;
-      
-      let okTipo = (tc.includes('OBRA') || tc.includes('CONVENIO'));
-      let okIntervencion = !tipoInt.includes('ESTUDIOS');
-      let okCronoFin = !dFin || dFin.getFullYear() !== 2027;
-      let okEstado = estado !== 'INCUMPLIMIENTO' && estado !== 'NO EJECUTADO';
-      let okRealFin = !d.fecha_real_fin || (dReal && dReal.getFullYear() === 2026);
-      
-      let esUniverso = okTipo && okIntervencion && okCronoFin && okEstado && okRealFin;
-      
-      if (esUniverso) {
+      {
         universoCount++;
         
         if (estado === 'TERMINADO') {
@@ -833,6 +820,8 @@ export default function Dashboard() {
     </div>
   );
 }
+
+
 
 
 
