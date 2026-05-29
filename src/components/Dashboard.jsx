@@ -199,6 +199,8 @@ export default function Dashboard() {
     
     if (localidadFilter !== 'VISIÓN GLOBAL') {
       resultList = resultList.filter(st => st.loc === localidadFilter);
+    } else {
+      resultList.sort((a, b) => b.pct - a.pct);
     }
 
     resultList.forEach(st => {
