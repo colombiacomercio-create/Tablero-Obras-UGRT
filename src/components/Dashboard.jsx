@@ -156,68 +156,76 @@ export default function Dashboard() {
     };
   }, [filteredData, localidadFilter]);
 
-  // Alertas Stats
-  const alertasStats = useMemo(() => {
-    let totalObsTecnica = 0, totalObsJuridica = 0;
-    let tecAcogidas = 0, jurAcogidas = 0;
-    let tecParcial = 0, jurParcial = 0;
-    const detallePendientes = [];
-    
+  const alertasResumen = useMemo(() => {
+    // Agrupar por contrato para evitar inflar conteos por frentes duplicados
+    const alertasPorContrato = {};
     filteredAlertas.forEach(a => {
+      const loc = a.localidad || 'Sin localidad';
+      const c = a.contrato || a.numero_contrato || a.id_frente || 'Sin contrato';
+      const key = `${loc}-${c}`;
+      if (!alertasPorContrato[key]) {
+        alertasPorContrato[key] = a;
+      }
+    });
+
+    const locMap = {};
+    LOCALIDADES.forEach(loc => {
+      locMap[loc] = { loc, contratosCount: 0, si: 0, no: 0, vacio: 0 };
+    });
+
+    Object.values(alertasPorContrato).forEach(a => {
+      const loc = a.localidad;
+      if (!loc || !locMap[loc]) return;
+      
       const valTec = a.observacion_tecnica ? String(a.observacion_tecnica).trim() : '';
       const valJur = a.observacion_juridica ? String(a.observacion_juridica).trim() : '';
-      
       const hasTec = valTec.length > 0 && valTec !== '0' && valTec.toLowerCase() !== 'n/a';
       const hasJur = valJur.length > 0 && valJur !== '0' && valJur.toLowerCase() !== 'n/a';
       
-      if (!hasTec && !hasJur) return;
+      if (!hasTec && !hasJur) return; // Si no hay observación válida en técnica ni jurídica, ignorar
+      
+      locMap[loc].contratosCount++;
 
-      const tec = a.acogio_tecnica ? String(a.acogio_tecnica).trim().toUpperCase() : '';
-      const jur = a.acogio_juridica ? String(a.acogio_juridica).trim().toUpperCase() : '';
+      const checkField = (fieldStr) => {
+        const val = fieldStr ? String(fieldStr).trim().toUpperCase() : '';
+        if (val === 'SI' || val === 'SÍ') locMap[loc].si++;
+        else if (val === 'NO') locMap[loc].no++;
+        else locMap[loc].vacio++; // Parcialmente, vacío u otro va a "Pendiente"
+      };
 
-      let tienePendiente = false;
-      let tipoPendiente = [];
-      let obsPendiente = [];
+      checkField(a.acogio_tecnica);
+      checkField(a.acogio_juridica);
+    });
 
-      if (hasTec) {
-        totalObsTecnica++;
-        if (tec === 'SI' || tec === 'SÍ') tecAcogidas++;
-        else if (tec === 'PARCIALMENTE') tecParcial++;
-        else if (tec === 'NO') {
-          tienePendiente = true;
-          tipoPendiente.push('Técnica');
-          obsPendiente.push(a.observacion_tecnica);
-        }
-      }
+    let totalContratos = 0, totalSi = 0, totalNo = 0, totalVacio = 0;
 
-      if (hasJur) {
-        totalObsJuridica++;
-        if (jur === 'SI' || jur === 'SÍ') jurAcogidas++;
-        else if (jur === 'PARCIALMENTE') jurParcial++;
-        else if (jur === 'NO') {
-          tienePendiente = true;
-          tipoPendiente.push('Jurídica');
-          obsPendiente.push(a.observacion_juridica);
-        }
-      }
-
-      if (tienePendiente) {
-        detallePendientes.push({
-          localidad: a.localidad || 'Sin dato',
-          contrato: a.contrato || a.numero_contrato || 'Sin contrato',
-          tipo: tipoPendiente.join(' y '),
-          obs: obsPendiente.join(' | ') || 'Sin observación específica'
-        });
-      }
+    let resultList = Object.values(locMap).map(st => {
+      const totalPosibles = st.contratosCount * 2; // Matemática del Excel
+      const pct = totalPosibles > 0 ? (st.si / totalPosibles) * 100 : 0;
+      return { ...st, pct };
     });
     
-    const totalObservaciones = totalObsTecnica + totalObsJuridica;
-    const totalAcogidas = tecAcogidas + jurAcogidas;
-    const totalParciales = tecParcial + jurParcial;
-    const pctAcogidas = totalObservaciones > 0 ? (totalAcogidas / totalObservaciones) * 100 : 0;
-    
-    return { totalObservaciones, tecAcogidas, jurAcogidas, tecParcial, jurParcial, totalAcogidas, totalParciales, pctAcogidas, detallePendientes };
-  }, [filteredAlertas]);
+    if (localidadFilter !== 'VISIÓN GLOBAL') {
+      resultList = resultList.filter(st => st.loc === localidadFilter);
+    }
+
+    resultList.forEach(st => {
+      totalContratos += st.contratosCount;
+      totalSi += st.si;
+      totalNo += st.no;
+      totalVacio += st.vacio;
+    });
+
+    const totales = {
+      contratosCount: totalContratos,
+      si: totalSi,
+      no: totalNo,
+      vacio: totalVacio,
+      pct: (totalContratos * 2) > 0 ? (totalSi / (totalContratos * 2)) * 100 : 0
+    };
+
+    return { list: resultList, totales };
+  }, [filteredAlertas, localidadFilter]);
 
   // Desglose Mensual
   const monthlyData = useMemo(() => {
@@ -718,68 +726,75 @@ export default function Dashboard() {
               <AlertTriangle size={18} color="var(--warning-text)"/> ALERTAS MESA TÉCNICA Y JURÍDICA (DETALLE)
             </h3>
           </div>
-          <div style={{ padding: '24px' }}>
-            <div style={{ display: 'flex', gap: '24px', marginBottom: '24px' }}>
-              <div style={{ flex: 1, background: 'rgba(255, 255, 255, 0.05)', padding: '16px', borderRadius: '8px', borderLeft: '4px solid var(--info)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <span style={{ color: 'var(--info)', fontWeight: '600', fontSize: '13px' }}>Total Observaciones</span>
-                  <span style={{ color: 'var(--info)', fontWeight: '800', fontSize: '16px' }}>{alertasStats.totalObservaciones}</span>
-                </div>
-                <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Suma de observaciones G y H</div>
-              </div>
-
-              <div style={{ flex: 1, background: 'rgba(251, 191, 36, 0.1)', padding: '16px', borderRadius: '8px', borderLeft: '4px solid var(--primary)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <span style={{ color: 'var(--primary)', fontWeight: '600', fontSize: '13px' }}>Técnicas (G)</span>
-                  <span style={{ color: 'var(--primary)', fontWeight: '800', fontSize: '16px' }}>{alertasStats.tecAcogidas}</span>
-                </div>
-                <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{alertasStats.tecParcial} acogidas parcialmente</div>
-              </div>
-
-              <div style={{ flex: 1, background: 'rgba(251, 191, 36, 0.1)', padding: '16px', borderRadius: '8px', borderLeft: '4px solid var(--primary-dark)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <span style={{ color: 'var(--primary-dark)', fontWeight: '600', fontSize: '13px' }}>Jurídicas (H)</span>
-                  <span style={{ color: 'var(--primary-dark)', fontWeight: '800', fontSize: '16px' }}>{alertasStats.jurAcogidas}</span>
-                </div>
-                <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{alertasStats.jurParcial} acogidas parcialmente</div>
-              </div>
-
-              <div style={{ flex: 1, background: 'rgba(251, 191, 36, 0.1)', padding: '16px', borderRadius: '8px', borderLeft: '4px solid var(--success)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <span style={{ color: 'var(--primary)', fontWeight: '600', fontSize: '13px' }}>% Rec. Acogidas</span>
-                  <span style={{ color: 'var(--primary)', fontWeight: '800', fontSize: '16px' }}>{alertasStats.pctAcogidas.toFixed(1)}%</span>
-                </div>
-                <div style={{ fontSize: '11px', color: 'var(--primary)', marginTop: '4px' }}>
-                  {alertasStats.totalAcogidas} acogidas de {alertasStats.totalObservaciones}
-                </div>
-              </div>
+          <div className="glass-panel" style={{ padding: '0', gridColumn: '1 / -1' }}>
+            <div style={{ padding: '20px 24px', background: 'rgba(255, 255, 255, 0.03)', borderBottom: '1px solid var(--surface-border)' }}>
+              <h3 style={{ fontSize: '14px', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <AlertTriangle size={18} color="var(--warning-text)"/> RESUMEN DE ALERTAS (MESA TÉCNICA Y JURÍDICA)
+              </h3>
             </div>
-
-            {/* Tabla de Detalle de Alertas */}
-            <div className="table-container" style={{ maxHeight: '300px', overflowY: 'auto' }}>
-              <table>
+            
+            <div className="table-container" style={{ maxHeight: '450px', overflowY: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                 <thead style={{ position: 'sticky', top: 0, zIndex: 1 }}>
                   <tr>
-                    <th>Localidad</th>
-                    <th>Contrato</th>
-                    <th>Tipo Observación Pendiente (Técnica o Jurídica)</th>
+                    <th style={{ backgroundColor: '#1e3a5f', color: '#fff', border: '1px solid #334155' }}>Alcaldía Local</th>
+                    <th style={{ backgroundColor: '#1e3a5f', color: '#fff', textAlign: 'center', border: '1px solid #334155', width: '130px' }}>Total Contratos con observaciones</th>
+                    <th style={{ backgroundColor: '#4b7535', color: '#fff', textAlign: 'center', border: '1px solid #334155' }}>Observaciones (SI)</th>
+                    <th style={{ backgroundColor: '#4b7535', color: '#fff', textAlign: 'center', border: '1px solid #334155' }}>Acogidas (NO)</th>
+                    <th style={{ backgroundColor: '#777777', color: '#fff', textAlign: 'center', border: '1px solid #334155' }}>Pendiente</th>
+                    <th style={{ backgroundColor: '#1e66a5', color: '#fff', textAlign: 'center', border: '1px solid #334155' }}>% Recomendaciones Acogidas</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {alertasStats.detallePendientes.map((al, idx) => (
-                    <tr key={idx}>
-                      <td style={{ fontWeight: 'bold', fontSize: '12px' }}>{al.localidad}</td>
-                      <td style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{al.contrato}</td>
-                      <td style={{ fontSize: '11px', color: 'var(--danger)', fontWeight: 'bold' }}>{al.tipo}</td>
-                    </tr>
-                  ))}
-                  {alertasStats.detallePendientes.length === 0 && (
-                    <tr><td colSpan="3" style={{ textAlign: 'center', padding: '24px' }}>No hay alertas de Mesa Técnica o Jurídica</td></tr>
-                  )}
+                  {alertasResumen.list.map((al, idx) => {
+                    let colorBg = '';
+                    let dotColor = '';
+                    if (al.pct >= 60) {
+                      colorBg = 'rgba(74, 175, 105, 0.2)';
+                      dotColor = '#4aaf69';
+                    } else if (al.pct >= 30) {
+                      colorBg = 'rgba(250, 204, 21, 0.2)';
+                      dotColor = '#facc15';
+                    } else {
+                      colorBg = 'rgba(239, 68, 68, 0.2)';
+                      dotColor = '#ef4444';
+                    }
+                    
+                    return (
+                      <tr key={idx}>
+                        <td style={{ border: '1px solid #334155', padding: '8px' }}>{al.loc}</td>
+                        <td style={{ textAlign: 'center', border: '1px solid #334155', padding: '8px' }}>{al.contratosCount}</td>
+                        <td style={{ textAlign: 'center', border: '1px solid #334155', padding: '8px' }}>{al.si}</td>
+                        <td style={{ textAlign: 'center', border: '1px solid #334155', padding: '8px' }}>{al.no}</td>
+                        <td style={{ textAlign: 'center', border: '1px solid #334155', padding: '8px' }}>{al.vacio}</td>
+                        <td style={{ textAlign: 'center', border: '1px solid #334155', padding: '8px', backgroundColor: colorBg }}>
+                          <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontWeight: 'bold' }}>
+                            <span style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: dotColor, display: 'inline-block' }}></span>
+                            {al.pct.toFixed(1)}%
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  <tr style={{ backgroundColor: '#1e3a5f', color: '#fff', fontWeight: 'bold' }}>
+                    <td style={{ border: '1px solid #334155', padding: '8px' }}>TOTAL</td>
+                    <td style={{ textAlign: 'center', border: '1px solid #334155', padding: '8px' }}>{alertasResumen.totales.contratosCount}</td>
+                    <td style={{ textAlign: 'center', border: '1px solid #334155', padding: '8px' }}>{alertasResumen.totales.si}</td>
+                    <td style={{ textAlign: 'center', border: '1px solid #334155', padding: '8px' }}>{alertasResumen.totales.no}</td>
+                    <td style={{ textAlign: 'center', border: '1px solid #334155', padding: '8px' }}>{alertasResumen.totales.vacio}</td>
+                    <td style={{ textAlign: 'center', border: '1px solid #334155', padding: '8px' }}>
+                      {alertasResumen.totales.pct.toFixed(1)}%
+                    </td>
+                  </tr>
                 </tbody>
               </table>
             </div>
-
+            
+            <div style={{ padding: '16px 24px', background: 'rgba(255, 255, 255, 0.03)', borderTop: '1px solid var(--surface-border)' }}>
+              <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-secondary)' }}>
+                * En sintonía con el libro de Excel, los encabezados <strong>Observaciones</strong> y <strong>Acogidas</strong> corresponden matemáticamente al conteo de los registros "SI" y "NO" respectivamente. El total de recomendaciones (% Acogidas) asume un máximo de 2 campos (técnico y jurídico) por cada contrato registrado.
+              </p>
+            </div>
           </div>
         </div>
 
