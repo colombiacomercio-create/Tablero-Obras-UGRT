@@ -77,18 +77,13 @@ export default function Dashboard() {
     }
   };
 
-  // Filtro base: descartar consultorías y estudios
-  const esIntervencionValida = (d) => {
-    const tipo = d.tipo_intervencion ? String(d.tipo_intervencion).toUpperCase() : '';
-    if (tipo === 'CONSULTORÍA' || tipo === 'ESTUDIOS Y DISEÑOS' || tipo.includes('MAQUINARIA')) return false;
-    return true;
-  };
-
   const filteredData = useMemo(() => {
-    const validData = data.filter(esIntervencionValida);
-    if (localidadFilter === 'VISIÓN GLOBAL') return validData;
-    return validData.filter(d => d.localidad === localidadFilter);
-  }, [data, localidadFilter]);
+    return data.filter(d => {
+      // Universo simplificado: solo excluir los estados expresamente nulos o eliminados
+      const estado = d.estado ? String(d.estado).toUpperCase().trim() : '';
+      return estado !== 'ELIMINADO' && estado !== 'NULO';
+    });
+  }, [data]);
 
   const filteredAlertas = useMemo(() => {
     if (localidadFilter === 'VISIÓN GLOBAL') return alertas;
@@ -105,7 +100,7 @@ export default function Dashboard() {
     filteredData.forEach(d => {
       const estado = d.estado ? String(d.estado).toUpperCase().trim() : '';
       
-      {
+      if (localidadFilter === 'VISIÓN GLOBAL' || d.localidad === localidadFilter) {
         universoCount++;
         
         if (estado === 'TERMINADO') {
@@ -138,7 +133,6 @@ export default function Dashboard() {
       }
     });
 
-    // La meta es el universo completo filtrado (incluyendo vigencias anteriores y sin cronograma)
     const metaTotal = universoCount;
     const cumplimiento = metaTotal > 0 ? (terminadas / metaTotal) * 100 : 0;
 
@@ -162,7 +156,7 @@ export default function Dashboard() {
       const hasTec = valTec.length > 0 && valTec !== '0' && valTec.toLowerCase() !== 'n/a';
       const hasJur = valJur.length > 0 && valJur !== '0' && valJur.toLowerCase() !== 'n/a';
       
-      if (!hasTec && !hasJur) return; // Only process rows with valid observations
+      if (!hasTec && !hasJur) return;
 
       const tec = a.acogio_tecnica ? String(a.acogio_tecnica).trim().toUpperCase() : '';
       const jur = a.acogio_juridica ? String(a.acogio_juridica).trim().toUpperCase() : '';
@@ -211,30 +205,18 @@ export default function Dashboard() {
     return { totalObservaciones, tecAcogidas, jurAcogidas, tecParcial, jurParcial, totalAcogidas, totalParciales, pctAcogidas, detallePendientes };
   }, [filteredAlertas]);
 
-  // Desglose Mensual (Sobre Nuevo Universo)
+  // Desglose Mensual
   const monthlyData = useMemo(() => {
     const dataByMonth = MONTHS.map((m, i) => ({ name: m, Programadas: 0, Terminadas: 0 }));
     
     filteredData.forEach(d => {
-      const tc = d.tipo_contrato ? String(d.tipo_contrato).toUpperCase() : '';
-      const estado = d.estado ? String(d.estado).toUpperCase().trim() : '';
+      if (localidadFilter !== 'VISIÓN GLOBAL' && d.localidad !== localidadFilter) return;
+
       let dFin = d.crono_fin ? new Date(d.crono_fin) : null;
       let dReal = d.fecha_real_fin ? new Date(d.fecha_real_fin) : null;
-      
-      let okTipo = (tc.includes('OBRA') || tc.includes('CONVENIO'));
-      let okCronoFin = false;
-      if (!d.crono_fin || (dFin && [2023, 2024, 2025, 2026].includes(dFin.getFullYear()))) okCronoFin = true;
-      let okEstado = false;
-      const validEstados = ['POR INICIAR', 'EN EJECUCION', 'EN EJECUCIÓN', 'SUSPENDIDO', 'TERMINADO'];
-      if (!d.estado || validEstados.includes(estado)) okEstado = true;
-      let okRealFin = false;
-      if (!d.fecha_real_fin || (dReal && dReal.getFullYear() === 2026)) okRealFin = true;
-      
-      let esUniverso = okTipo && okCronoFin && okEstado && okRealFin;
+      const estado = d.estado ? String(d.estado).toUpperCase().trim() : '';
 
-      if (!esUniverso) return;
-      
-      // Programadas: Según mes de crono_fin (solo si es 2026 para la curva)
+      // Programadas: Según mes de crono_fin (solo si es 2026)
       if (dFin && dFin.getFullYear() === 2026) {
         dataByMonth[dFin.getMonth()].Programadas++;
       }
@@ -310,23 +292,9 @@ export default function Dashboard() {
     LOCALIDADES.forEach(loc => locStats[loc] = { loc, universoTotal: 0, progTotales: 0, termTotales: 0, progVencidas: 0, termVencidas: 0, susp: 0, atrasadas: 0 });
 
     filteredData.forEach(d => {
-      const tc = d.tipo_contrato ? String(d.tipo_contrato).toUpperCase() : '';
       const estado = d.estado ? String(d.estado).toUpperCase().trim() : '';
       let dFin = d.crono_fin ? new Date(d.crono_fin) : null;
-      let dReal = d.fecha_real_fin ? new Date(d.fecha_real_fin) : null;
       
-      let okTipo = (tc.includes('OBRA') || tc.includes('CONVENIO'));
-      let okCronoFin = false;
-      if (!d.crono_fin || (dFin && [2023, 2024, 2025, 2026].includes(dFin.getFullYear()))) okCronoFin = true;
-      let okEstado = false;
-      const validEstados = ['POR INICIAR', 'EN EJECUCION', 'EN EJECUCIÓN', 'SUSPENDIDO', 'TERMINADO'];
-      if (!d.estado || validEstados.includes(estado)) okEstado = true;
-      let okRealFin = false;
-      if (!d.fecha_real_fin || (dReal && dReal.getFullYear() === 2026)) okRealFin = true;
-      
-      let esUniverso = okTipo && okCronoFin && okEstado && okRealFin;
-
-      if (!esUniverso) return;
       if (!d.localidad || !locStats[d.localidad]) return;
       
       const st = locStats[d.localidad];
@@ -393,22 +361,8 @@ export default function Dashboard() {
   const suspendidasList = useMemo(() => {
     const list = filteredData
       .filter(d => {
-        const tc = d.tipo_contrato ? String(d.tipo_contrato).toUpperCase() : '';
         const estado = d.estado ? String(d.estado).toUpperCase().trim() : '';
-        let dFin = d.crono_fin ? new Date(d.crono_fin) : null;
-        let dReal = d.fecha_real_fin ? new Date(d.fecha_real_fin) : null;
-        let okTipo = (tc.includes('OBRA') || tc.includes('CONVENIO'));
-        let okCronoFin = false;
-        if (!d.crono_fin || (dFin && [2023, 2024, 2025, 2026].includes(dFin.getFullYear()))) okCronoFin = true;
-        let okEstado = false;
-        const validEstados = ['POR INICIAR', 'EN EJECUCION', 'EN EJECUCIÓN', 'SUSPENDIDO', 'TERMINADO'];
-        if (!d.estado || validEstados.includes(estado)) okEstado = true;
-        let okRealFin = false;
-        if (!d.fecha_real_fin || (dReal && dReal.getFullYear() === 2026)) okRealFin = true;
-        
-        let esUniverso = okTipo && okCronoFin && okEstado && okRealFin;
-
-        return esUniverso && estado === 'SUSPENDIDO';
+        return estado === 'SUSPENDIDO';
       });
 
     // Agrupar por contrato
