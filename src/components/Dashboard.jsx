@@ -366,7 +366,9 @@ export default function Dashboard() {
 
       // Filtro para Programadas a corte: entre el 1 de enero de 2026 y la fecha_corte
       const inicio2026 = new Date(2026, 0, 1);
-      const isProgCorte = dFin && dFin >= inicio2026 && dFin <= today;
+      
+      // Metodología unificada con Excel: toda obra terminada se cuenta como programada a corte, independientemente del cronograma
+      const isProgCorte = (dFin && dFin >= inicio2026 && dFin <= today) || estado === 'TERMINADO';
 
       if (isProgCorte) {
         st.progTotales++;
