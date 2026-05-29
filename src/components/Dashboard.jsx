@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../supabaseClient';
+import * as XLSX from 'xlsx';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer,
   PieChart, Pie, Cell, LineChart, Line, AreaChart, Area
@@ -298,6 +299,31 @@ export default function Dashboard() {
       .sort((a, b) => b.value - a.value);
   }, [filteredData]);
 
+  // Función para exportar un array de obras a Excel
+  const descargarExcel = (datos, categoria, localidad) => {
+    if (!datos || datos.length === 0) {
+      alert("No hay datos para exportar en esta celda.");
+      return;
+    }
+    const dataFormateada = datos.map(d => ({
+      "ID Frente": d.id_frente || d.id,
+      "Localidad": d.localidad,
+      "Contrato": d.contrato || d.numero_contrato,
+      "Tipo Intervención": d.tipo_intervencion,
+      "Estado": d.estado,
+      "% Avance": (Number(d.porcentaje_avance) * 100).toFixed(1) + "%",
+      "Fecha Inicio Cronograma": d.crono_inicio,
+      "Fecha Fin Cronograma": d.crono_fin,
+      "Fecha Real Fin": d.fecha_real_fin,
+    }));
+    
+    const ws = XLSX.utils.json_to_sheet(dataFormateada);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Frentes de Obra");
+    const nombreArchivo = `Obras_${categoria}_${localidad}_UGRT`;
+    XLSX.writeFile(wb, `${nombreArchivo}.xlsx`);
+  };
+
   // Ranking IDC
   const rankingIDC = useMemo(() => {
     if (localidadFilter !== 'VISIÓN GLOBAL') return [];
@@ -305,7 +331,10 @@ export default function Dashboard() {
     const locStats = {};
     const today = new Date(fechaCorte || Date.now());
 
-    LOCALIDADES.forEach(loc => locStats[loc] = { loc, universoTotal: 0, progTotales: 0, termTotales: 0, progVencidas: 0, termVencidas: 0, susp: 0, atrasadas: 0 });
+    LOCALIDADES.forEach(loc => locStats[loc] = { 
+      loc, universoTotal: 0, progTotales: 0, termTotales: 0, susp: 0, vencidas: 0,
+      progTotales_items: [], termTotales_items: [], susp_items: [], vencidas_items: []
+    });
 
     filteredData.forEach(d => {
       const estado = d.estado ? String(d.estado).toUpperCase().trim() : '';
@@ -322,17 +351,24 @@ export default function Dashboard() {
 
       if (isProgCorte) {
         st.progTotales++;
-        if (estado === 'TERMINADO') st.termTotales++;
+        st.progTotales_items.push(d);
+        if (estado === 'TERMINADO') {
+          st.termTotales++;
+          st.termTotales_items.push(d);
+        } else {
+          st.vencidas++;
+          st.vencidas_items.push(d);
+        }
       }
 
       if (estado === 'SUSPENDIDO') {
         st.susp++;
+        st.susp_items.push(d);
       }
     });
 
     return Object.values(locStats)
       .map(st => {
-      st.vencidas = st.progTotales - st.termTotales;
       st.puntajeTotal = st.progTotales > 0 ? (st.termTotales / st.progTotales) * 100 : 0;
       return st;
     }).sort((a, b) => {
@@ -579,10 +615,38 @@ export default function Dashboard() {
                         <td style={{ fontWeight: 'bold', color: idx < 3 ? 'var(--primary)' : 'var(--text-secondary)' }}>{idx + 1}</td>
                         <td style={{ fontWeight: '500' }}>{r.loc}</td>
                         <td style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>{r.universoTotal}</td>
-                        <td style={{ textAlign: 'center' }}>{r.progTotales}</td>
-                        <td style={{ textAlign: 'center', color: 'var(--success)', fontWeight: 'bold' }}>{r.termTotales}</td>
-                        <td style={{ textAlign: 'center', color: 'var(--warning)', fontWeight: 'bold' }}>{r.susp}</td>
-                        <td style={{ textAlign: 'center', color: 'var(--danger)', fontWeight: 'bold' }}>{r.vencidas}</td>
+                        <td style={{ textAlign: 'center' }}>
+                          <span 
+                            title="Haz clic para descargar detalle en Excel"
+                            style={{ cursor: 'pointer', textDecoration: 'underline', color: 'var(--primary)' }}
+                            onClick={() => descargarExcel(r.progTotales_items, 'Programadas_a_Corte', r.loc)}>
+                            {r.progTotales}
+                          </span>
+                        </td>
+                        <td style={{ textAlign: 'center', color: 'var(--success)', fontWeight: 'bold' }}>
+                          <span 
+                            title="Haz clic para descargar detalle en Excel"
+                            style={{ cursor: 'pointer', textDecoration: 'underline' }}
+                            onClick={() => descargarExcel(r.termTotales_items, 'Terminadas', r.loc)}>
+                            {r.termTotales}
+                          </span>
+                        </td>
+                        <td style={{ textAlign: 'center', color: 'var(--warning)', fontWeight: 'bold' }}>
+                          <span 
+                            title="Haz clic para descargar detalle en Excel"
+                            style={{ cursor: 'pointer', textDecoration: 'underline' }}
+                            onClick={() => descargarExcel(r.susp_items, 'Suspendidas', r.loc)}>
+                            {r.susp}
+                          </span>
+                        </td>
+                        <td style={{ textAlign: 'center', color: 'var(--danger)', fontWeight: 'bold' }}>
+                          <span 
+                            title="Haz clic para descargar detalle en Excel"
+                            style={{ cursor: 'pointer', textDecoration: 'underline' }}
+                            onClick={() => descargarExcel(r.vencidas_items, 'Vencidas', r.loc)}>
+                            {r.vencidas}
+                          </span>
+                        </td>
                         <td style={{ textAlign: 'right', fontWeight: '800', color: 'var(--primary)', fontSize: '14px' }}>
                           {r.puntajeTotal.toFixed(1)}%
                         </td>
