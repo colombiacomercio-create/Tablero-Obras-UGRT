@@ -78,12 +78,26 @@ export default function Dashboard() {
   };
 
   const filteredData = useMemo(() => {
-    return data.filter(d => {
-      // Universo simplificado: solo excluir los estados expresamente nulos o eliminados
+    const validData = data.filter(d => {
+      const tc = d.tipo_contrato ? String(d.tipo_contrato).toUpperCase() : '';
       const estado = d.estado ? String(d.estado).toUpperCase().trim() : '';
-      return estado !== 'ELIMINADO' && estado !== 'NULO';
+      const tipoInt = d.tipo_intervencion ? String(d.tipo_intervencion).toUpperCase().trim() : '';
+      
+      let dFin = d.crono_fin ? new Date(d.crono_fin) : null;
+      let dReal = d.fecha_real_fin ? new Date(d.fecha_real_fin) : null;
+      
+      let okTipo = (tc.includes('OBRA') || tc.includes('CONVENIO'));
+      let okIntervencion = !tipoInt.includes('ESTUDIOS');
+      let okCronoFin = !dFin || dFin.getFullYear() !== 2027;
+      let okEstado = estado !== 'INCUMPLIMIENTO' && estado !== 'NO EJECUTADO';
+      let okRealFin = !d.fecha_real_fin || (dReal && dReal.getFullYear() === 2026);
+      
+      return okTipo && okIntervencion && okCronoFin && okEstado && okRealFin;
     });
-  }, [data]);
+
+    if (localidadFilter === 'VISIÓN GLOBAL') return validData;
+    return validData.filter(d => d.localidad === localidadFilter);
+  }, [data, localidadFilter]);
 
   const filteredAlertas = useMemo(() => {
     if (localidadFilter === 'VISIÓN GLOBAL') return alertas;
