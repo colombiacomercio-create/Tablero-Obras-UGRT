@@ -147,13 +147,14 @@ export default function Dashboard() {
         }
         
         if (estado === 'SUSPENDIDO') suspendidas++;
-        if (estado === 'EN EJECUCION' || estado === 'EN EJECUCIÓN') enEjecucion++;
+        if (estado === 'EN EJECUCION' || estado === 'EN EJECUCIÓN' || estado === 'POR INICIAR') enEjecucion++;
         if (!d.crono_fin) sinCronograma++;
       }
     });
 
-    const metaTotal = universoCount;
-    const cumplimiento = metaTotal > 0 ? (terminadas / metaTotal) * 100 : 0;
+    // Meta fija de 1700 frentes solicitada por el usuario para la barra de progreso
+    const metaTotal = 1700;
+    const cumplimiento = (terminadas / metaTotal) * 100;
 
     return {
       universoCount, metaTotal, terminadas, suspendidas, enEjecucion, sinCronograma,
@@ -576,7 +577,7 @@ export default function Dashboard() {
 
         <div style={{ marginTop: 'auto', paddingTop: '24px' }}>
           <div style={{ padding: '12px', background: 'rgba(255, 255, 255, 0.05)', borderRadius: '8px', border: '1px solid var(--surface-border)' }}>
-            <p style={{ fontSize: '11px', color: 'var(--text-secondary)', margin: 0, fontWeight: '500' }}>{stats.programadas} frentes programados 2026</p>
+            <p style={{ fontSize: '11px', color: 'var(--text-secondary)', margin: 0, fontWeight: '500' }}>{stats.metaTotal} frentes programados 2026</p>
           </div>
           <div style={{ marginTop: '16px', textAlign: 'center' }}>
             <Link to="/admin" style={{ fontSize: '11px', color: 'var(--primary)', fontWeight: 'bold', textDecoration: 'none' }}>Acceso Administrador →</Link>
@@ -600,7 +601,7 @@ export default function Dashboard() {
         <div className="kpi-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
           <div className="glass-panel kpi-card">
             <span className="kpi-title" style={{ color: 'var(--success)' }}>AVANCE FINALIZACIÓN OBRAS 2026</span>
-            <div className="kpi-value success">{stats.terminadas} / {stats.metaTotal}</div>
+            <div className="kpi-value success">{stats.terminadas}</div>
             <div style={{ width: '100%', height: '6px', background: 'var(--surface-border)', borderRadius: '3px', marginTop: '8px' }}>
               <div style={{ width: `${Math.min(stats.cumplimiento, 100)}%`, height: '100%', background: 'var(--success)', borderRadius: '3px' }}></div>
             </div>
