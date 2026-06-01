@@ -182,8 +182,14 @@ export default function Dashboard() {
       
       const valTec = a.observacion_tecnica ? String(a.observacion_tecnica).trim() : '';
       const valJur = a.observacion_juridica ? String(a.observacion_juridica).trim() : '';
-      const hasTec = valTec.length > 0 && valTec !== '0' && valTec.toLowerCase() !== 'n/a';
-      const hasJur = valJur.length > 0 && valJur !== '0' && valJur.toLowerCase() !== 'n/a';
+      
+      const isInvalid = (str) => {
+        const s = str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+        return s === '0' || s === 'n/a' || s === 'na' || s === '' || s.includes('no hay observacion') || s.includes('sin observacion');
+      };
+
+      const hasTec = !isInvalid(valTec);
+      const hasJur = !isInvalid(valJur);
       
       if (!hasTec && !hasJur) return; 
 
