@@ -389,14 +389,20 @@ export default function Dashboard() {
       progTotales_items: [], termTotales_items: [], susp_items: [], vencidas_items: []
     });
 
-    filteredData.forEach(d => {
+    data.forEach(d => {
+      const tc = d.tipo_contrato ? String(d.tipo_contrato).toUpperCase() : '';
+      const tipoInt = d.tipo_intervencion ? String(d.tipo_intervencion).toUpperCase().trim() : '';
       const estado = d.estado ? String(d.estado).toUpperCase().trim() : '';
       let dFin = d.crono_fin ? new Date(d.crono_fin) : null;
       
+      const okTipo = tc.includes('OBRA') || tc.includes('CONVENIO');
+      const okIntervencion = !tipoInt.includes('ESTUDIOS');
+      
+      if (!okTipo || !okIntervencion) return;
+
       const normalizar = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
       let rawLoc = d.localidad ? normalizar(String(d.localidad)) : null;
       
-      // Buscar la llave correcta en locStats comparando de forma normalizada
       let matchedKey = null;
       if (rawLoc) {
         matchedKey = Object.keys(locStats).find(k => normalizar(k) === rawLoc);
@@ -407,11 +413,9 @@ export default function Dashboard() {
       const st = locStats[matchedKey];
       st.universoTotal++;
 
-      // Filtro para Programadas a corte: entre el 1 de enero de 2026 y la fecha_corte
       const inicio2026 = new Date(2026, 0, 1);
-      
-      // Metodología unificada con Excel: toda obra terminada se cuenta como programada a corte, independientemente del cronograma
-      const isProgCorte = (dFin && dFin >= inicio2026 && dFin <= today) || estado === 'TERMINADO';
+      // Filtro estricto: la obra debe tener cronograma final entre el 1 de enero de 2026 y la fecha de corte dinámica
+      const isProgCorte = dFin && dFin >= inicio2026 && dFin <= today;
 
       if (isProgCorte) {
         st.progTotales++;
@@ -441,7 +445,7 @@ export default function Dashboard() {
       if (a.vencidas !== b.vencidas) return a.vencidas - b.vencidas; // Menor vencidas
       return a.susp - b.susp; // Menor suspendidas
     });
-  }, [filteredData, fechaCorte, localidadFilter]);
+  }, [data, fechaCorte, localidadFilter]);
 
   // Top 50 Próximas Entregas (Solo Universo 2026, Avance > 60% y < 99%)
   const proximasEntregas = useMemo(() => {
