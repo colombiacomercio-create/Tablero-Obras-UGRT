@@ -386,7 +386,7 @@ export default function Dashboard() {
 
     LOCALIDADES.forEach(loc => locStats[loc] = { 
       loc, universoTotal: 0, progTotales: 0, termTotales: 0, susp: 0, vencidas: 0,
-      progTotales_items: [], termTotales_items: [], susp_items: [], vencidas_items: []
+      universoTotal_items: [], progTotales_items: [], termTotales_items: [], susp_items: [], vencidas_items: []
     });
 
     data.forEach(d => {
@@ -411,7 +411,15 @@ export default function Dashboard() {
       if (!matchedKey) return;
       
       const st = locStats[matchedKey];
-      st.universoTotal++;
+
+      const inicioVigencia = new Date(2026, 0, 1);
+      const finVigencia = new Date(2026, 11, 31, 23, 59, 59);
+      const isUniversoValid = !dFin || (dFin >= inicioVigencia && dFin <= finVigencia);
+
+      if (isUniversoValid) {
+        st.universoTotal++;
+        st.universoTotal_items.push(d);
+      }
 
       const inicio2026 = new Date(2026, 0, 1);
       // Filtro estricto: la obra debe tener cronograma final entre el 1 de enero de 2026 y la fecha de corte dinámica
@@ -682,7 +690,14 @@ export default function Dashboard() {
                       <tr key={r.loc}>
                         <td style={{ fontWeight: 'bold', color: idx < 3 ? 'var(--primary)' : 'var(--text-secondary)' }}>{idx + 1}</td>
                         <td style={{ fontWeight: '500' }}>{r.loc}</td>
-                        <td style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>{r.universoTotal}</td>
+                        <td style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>
+                          <span 
+                            title="Haz clic para descargar detalle en Excel"
+                            style={{ cursor: 'pointer', textDecoration: 'underline', fontWeight: 'bold' }}
+                            onClick={() => descargarExcel(r.universoTotal_items, 'Total_Obras', r.loc)}>
+                            {r.universoTotal}
+                          </span>
+                        </td>
                         <td style={{ textAlign: 'center' }}>
                           <span 
                             title="Haz clic para descargar detalle en Excel"
