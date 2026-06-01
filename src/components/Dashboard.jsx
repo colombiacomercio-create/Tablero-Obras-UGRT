@@ -286,20 +286,32 @@ export default function Dashboard() {
   const monthlyData = useMemo(() => {
     const dataByMonth = MONTHS.map((m, i) => ({ name: m, Programadas: 0, Terminadas: 0 }));
     
-    filteredData.forEach(d => {
+    const today = new Date(fechaCorte || Date.now());
+    const inicio2026 = new Date(2026, 0, 1);
+    const finVigencia = new Date(2026, 11, 31, 23, 59, 59);
+
+    data.forEach(d => {
       if (localidadFilter !== 'VISIÓN GLOBAL' && d.localidad !== localidadFilter) return;
 
+      const tc = d.tipo_contrato ? String(d.tipo_contrato).toUpperCase() : '';
+      const tipoInt = d.tipo_intervencion ? String(d.tipo_intervencion).toUpperCase().trim() : '';
+      const estado = d.estado ? String(d.estado).toUpperCase().trim() : '';
       let dFin = d.crono_fin ? new Date(d.crono_fin) : null;
       let dReal = d.fecha_real_fin ? new Date(d.fecha_real_fin) : null;
-      const estado = d.estado ? String(d.estado).toUpperCase().trim() : '';
+      
+      const okTipo = tc.includes('OBRA') || tc.includes('CONVENIO');
+      const okIntervencion = !tipoInt.includes('ESTUDIOS');
+      
+      if (!okTipo || !okIntervencion) return;
 
-      // Programadas: Según mes de crono_fin (solo si es 2026)
-      if (dFin && dFin.getFullYear() === 2026) {
+      // Programadas: Universo total de obras programadas para el 2026
+      if (dFin && dFin >= inicio2026 && dFin <= finVigencia) {
         dataByMonth[dFin.getMonth()].Programadas++;
       }
-      
-      // Terminadas: Según mes de fecha_real_fin (solo 2026)
-      if (estado === 'TERMINADO') {
+
+      // Terminadas: Alineadas con el IDC estricto de las 394 (Programadas a corte)
+      const isProgCorte = dFin && dFin >= inicio2026 && dFin <= today;
+      if (isProgCorte && estado === 'TERMINADO') {
         if (dReal && dReal.getFullYear() === 2026) {
           dataByMonth[dReal.getMonth()].Terminadas++;
         } else if (!dReal && dFin && dFin.getFullYear() === 2026) {
@@ -309,29 +321,13 @@ export default function Dashboard() {
     });
 
     return dataByMonth;
-  }, [filteredData]);
+  }, [data, fechaCorte, localidadFilter]);
 
   // Categoria Inversion
   const categoriaData = useMemo(() => {
     const cats = {};
+    // Utilizamos directamente el filteredData (universo de 1832 obras activas)
     filteredData.forEach(d => {
-      const tc = d.tipo_contrato ? String(d.tipo_contrato).toUpperCase() : '';
-      const estado = d.estado ? String(d.estado).toUpperCase().trim() : '';
-      let dFin = d.crono_fin ? new Date(d.crono_fin) : null;
-      let dReal = d.fecha_real_fin ? new Date(d.fecha_real_fin) : null;
-      let okTipo = (tc.includes('OBRA') || tc.includes('CONVENIO'));
-      let okCronoFin = false;
-      if (!d.crono_fin || (dFin && [2023, 2024, 2025, 2026].includes(dFin.getFullYear()))) okCronoFin = true;
-      let okEstado = false;
-      const validEstados = ['POR INICIAR', 'EN EJECUCION', 'EN EJECUCIÓN', 'SUSPENDIDO', 'TERMINADO'];
-      if (!d.estado || validEstados.includes(estado)) okEstado = true;
-      let okRealFin = false;
-      if (!d.fecha_real_fin || (dReal && dReal.getFullYear() === 2026)) okRealFin = true;
-      
-      let esUniverso = okTipo && okCronoFin && okEstado && okRealFin;
-
-      if (!esUniverso) return;
-      
       let cat = d.categoria_inversion ? String(d.categoria_inversion).trim() : 'Otros';
       const catUpper = cat.toUpperCase();
       if (
