@@ -115,37 +115,55 @@ export default function Dashboard() {
     let universoCount = 0;
     let kmTerm = 0, m2Term = 0, mlTerm = 0;
     const terminadasCats = {};
+
+    // 1. Calcular Terminadas y Cifras Físicas estrictamente como en el IDC (Fuerza 394 frentes globales)
+    const today = new Date(fechaCorte || Date.now());
+    const inicio2026 = new Date(2026, 0, 1);
     
+    data.forEach(d => {
+      const tc = d.tipo_contrato ? String(d.tipo_contrato).toUpperCase() : '';
+      const tipoInt = d.tipo_intervencion ? String(d.tipo_intervencion).toUpperCase().trim() : '';
+      const estado = d.estado ? String(d.estado).toUpperCase().trim() : '';
+      let dFin = d.crono_fin ? new Date(d.crono_fin) : null;
+      
+      const okTipo = tc.includes('OBRA') || tc.includes('CONVENIO');
+      const okIntervencion = !tipoInt.includes('ESTUDIOS');
+      
+      if (!okTipo || !okIntervencion) return;
+      if (localidadFilter !== 'VISIÓN GLOBAL' && d.localidad !== localidadFilter) return;
+
+      const isProgCorte = dFin && dFin >= inicio2026 && dFin <= today;
+      if (isProgCorte && estado === 'TERMINADO') {
+        terminadas++;
+        kmTerm += Number(d.km_carril) || 0;
+        m2Term += Number(d.m2) || 0;
+        mlTerm += Number(d.ml) || 0;
+        
+        let cat = d.categoria_inversion ? String(d.categoria_inversion).trim() : 'Otros';
+        const catUpper = cat.toUpperCase();
+        if (
+          catUpper === 'EDIFICACIONES' || 
+          catUpper === 'SIN CATEGORÍA' || 
+          catUpper === 'SIN CATEGORIA' ||
+          catUpper === 'BAHIA' ||
+          catUpper === 'BAHÍAS' ||
+          catUpper === 'CASA CULTURA' ||
+          catUpper === 'PUENTES' ||
+          catUpper.includes('MITIGACION') ||
+          catUpper.includes('MITIGACIÓN')
+        ) {
+          cat = 'Otros';
+        }
+        terminadasCats[cat] = (terminadasCats[cat] || 0) + 1;
+      }
+    });
+
+    // 2. Calcular los demás KPIs sobre el universo global filtrado (1832 frentes)
     filteredData.forEach(d => {
       const estado = d.estado ? String(d.estado).toUpperCase().trim() : '';
       
       if (localidadFilter === 'VISIÓN GLOBAL' || d.localidad === localidadFilter) {
         universoCount++;
-        
-        if (estado === 'TERMINADO') {
-          terminadas++;
-          kmTerm += Number(d.km_carril) || 0;
-          m2Term += Number(d.m2) || 0;
-          mlTerm += Number(d.ml) || 0;
-          
-          let cat = d.categoria_inversion ? String(d.categoria_inversion).trim() : 'Otros';
-          const catUpper = cat.toUpperCase();
-          if (
-            catUpper === 'EDIFICACIONES' || 
-            catUpper === 'SIN CATEGORÍA' || 
-            catUpper === 'SIN CATEGORIA' ||
-            catUpper === 'BAHIA' ||
-            catUpper === 'BAHÍAS' ||
-            catUpper === 'CASA CULTURA' ||
-            catUpper === 'PUENTES' ||
-            catUpper.includes('MITIGACION') ||
-            catUpper.includes('MITIGACIÓN')
-          ) {
-            cat = 'Otros';
-          }
-          terminadasCats[cat] = (terminadasCats[cat] || 0) + 1;
-        }
-        
         if (estado === 'SUSPENDIDO') suspendidas++;
         if (estado === 'EN EJECUCION' || estado === 'EN EJECUCIÓN' || estado === 'POR INICIAR') enEjecucion++;
         if (!d.crono_fin) sinCronograma++;
@@ -160,7 +178,7 @@ export default function Dashboard() {
       universoCount, metaTotal, terminadas, suspendidas, enEjecucion, sinCronograma,
       cumplimiento, kmTerm, m2Term, mlTerm, terminadasCats
     };
-  }, [filteredData, localidadFilter]);
+  }, [data, filteredData, fechaCorte, localidadFilter]);
 
   const alertasResumen = useMemo(() => {
     const locMap = {};
