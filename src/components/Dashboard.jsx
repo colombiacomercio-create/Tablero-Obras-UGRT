@@ -164,7 +164,7 @@ export default function Dashboard() {
   const alertasResumen = useMemo(() => {
     const locMap = {};
     LOCALIDADES.forEach(loc => {
-      locMap[loc] = { loc, alertasCount: 0, si: 0, no: 0, vacio: 0 };
+      locMap[loc] = { loc, observacionesCount: 0, acogidas: 0, parciales: 0, pendientes: 0 };
     });
 
     const normalizar = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
@@ -186,25 +186,28 @@ export default function Dashboard() {
       const hasJur = valJur.length > 0 && valJur !== '0' && valJur.toLowerCase() !== 'n/a';
       
       if (!hasTec && !hasJur) return; 
-      
-      locMap[loc].alertasCount++;
 
-      const checkField = (fieldStr) => {
+      const checkField = (hasObs, fieldStr) => {
+        if (!hasObs) return;
+        locMap[loc].observacionesCount++;
         const val = fieldStr ? String(fieldStr).trim().toUpperCase() : '';
-        if (val === 'SI' || val === 'SÍ') locMap[loc].si++;
-        else if (val === 'NO') locMap[loc].no++;
-        else locMap[loc].vacio++; 
+        if (val === 'SI' || val === 'SÍ') {
+          locMap[loc].acogidas++;
+        } else if (val.includes('PARCIAL')) {
+          locMap[loc].parciales++;
+        } else {
+          locMap[loc].pendientes++;
+        }
       };
 
-      checkField(a.acogio_tecnica);
-      checkField(a.acogio_juridica);
+      checkField(hasTec, a.acogio_tecnica);
+      checkField(hasJur, a.acogio_juridica);
     });
 
-    let totalAlertas = 0, totalSi = 0, totalNo = 0, totalVacio = 0;
+    let totalObservaciones = 0, totalAcogidas = 0, totalParciales = 0, totalPendientes = 0;
 
     let resultList = Object.values(locMap).map(st => {
-      const totalPosibles = st.alertasCount * 2; 
-      const pct = totalPosibles > 0 ? (st.si / totalPosibles) * 100 : 0;
+      const pct = st.observacionesCount > 0 ? ((st.acogidas * 1) + (st.parciales * 0.5)) / st.observacionesCount * 100 : 0;
       return { ...st, pct };
     });
     
@@ -215,18 +218,18 @@ export default function Dashboard() {
     }
 
     resultList.forEach(st => {
-      totalAlertas += st.alertasCount;
-      totalSi += st.si;
-      totalNo += st.no;
-      totalVacio += st.vacio;
+      totalObservaciones += st.observacionesCount;
+      totalAcogidas += st.acogidas;
+      totalParciales += st.parciales;
+      totalPendientes += st.pendientes;
     });
 
     const totales = {
-      alertasCount: totalAlertas,
-      si: totalSi,
-      no: totalNo,
-      vacio: totalVacio,
-      pct: (totalAlertas * 2) > 0 ? (totalSi / (totalAlertas * 2)) * 100 : 0
+      observacionesCount: totalObservaciones,
+      acogidas: totalAcogidas,
+      parciales: totalParciales,
+      pendientes: totalPendientes,
+      pct: totalObservaciones > 0 ? ((totalAcogidas * 1) + (totalParciales * 0.5)) / totalObservaciones * 100 : 0
     };
 
     return { list: resultList, totales };
@@ -810,10 +813,10 @@ export default function Dashboard() {
                 <thead style={{ position: 'sticky', top: 0, zIndex: 1 }}>
                   <tr>
                     <th style={{ backgroundColor: '#1e3a5f', color: '#fff', border: '1px solid #334155' }}>Alcaldía Local</th>
-                    <th style={{ backgroundColor: '#1e3a5f', color: '#fff', textAlign: 'center', border: '1px solid #334155', width: '130px' }}>Total Frentes con observaciones</th>
-                    <th style={{ backgroundColor: '#4b7535', color: '#fff', textAlign: 'center', border: '1px solid #334155' }}>Observaciones (SI)</th>
-                    <th style={{ backgroundColor: '#4b7535', color: '#fff', textAlign: 'center', border: '1px solid #334155' }}>Acogidas (NO)</th>
-                    <th style={{ backgroundColor: '#777777', color: '#fff', textAlign: 'center', border: '1px solid #334155' }}>Pendiente</th>
+                    <th style={{ backgroundColor: '#1e3a5f', color: '#fff', textAlign: 'center', border: '1px solid #334155', width: '130px' }}>Total Observaciones</th>
+                    <th style={{ backgroundColor: '#4b7535', color: '#fff', textAlign: 'center', border: '1px solid #334155' }}>Acogidas</th>
+                    <th style={{ backgroundColor: '#d97706', color: '#fff', textAlign: 'center', border: '1px solid #334155' }}>Parcialmente</th>
+                    <th style={{ backgroundColor: '#777777', color: '#fff', textAlign: 'center', border: '1px solid #334155' }}>Pendientes</th>
                     <th style={{ backgroundColor: '#1e66a5', color: '#fff', textAlign: 'center', border: '1px solid #334155' }}>% Recomendaciones Acogidas</th>
                   </tr>
                 </thead>
@@ -835,10 +838,10 @@ export default function Dashboard() {
                     return (
                       <tr key={idx}>
                         <td style={{ border: '1px solid #334155', padding: '8px' }}>{al.loc}</td>
-                        <td style={{ textAlign: 'center', border: '1px solid #334155', padding: '8px' }}>{al.alertasCount}</td>
-                        <td style={{ textAlign: 'center', border: '1px solid #334155', padding: '8px' }}>{al.si}</td>
-                        <td style={{ textAlign: 'center', border: '1px solid #334155', padding: '8px' }}>{al.no}</td>
-                        <td style={{ textAlign: 'center', border: '1px solid #334155', padding: '8px' }}>{al.vacio}</td>
+                        <td style={{ textAlign: 'center', border: '1px solid #334155', padding: '8px' }}>{al.observacionesCount}</td>
+                        <td style={{ textAlign: 'center', border: '1px solid #334155', padding: '8px' }}>{al.acogidas}</td>
+                        <td style={{ textAlign: 'center', border: '1px solid #334155', padding: '8px' }}>{al.parciales}</td>
+                        <td style={{ textAlign: 'center', border: '1px solid #334155', padding: '8px' }}>{al.pendientes}</td>
                         <td style={{ textAlign: 'center', border: '1px solid #334155', padding: '8px', backgroundColor: colorBg }}>
                           <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontWeight: 'bold' }}>
                             <span style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: dotColor, display: 'inline-block' }}></span>
