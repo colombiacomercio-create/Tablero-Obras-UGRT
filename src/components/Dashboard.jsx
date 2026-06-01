@@ -164,7 +164,10 @@ export default function Dashboard() {
   const alertasResumen = useMemo(() => {
     const locMap = {};
     LOCALIDADES.forEach(loc => {
-      locMap[loc] = { loc, observacionesCount: 0, acogidas: 0, parciales: 0, pendientes: 0 };
+      locMap[loc] = { 
+        loc, observacionesCount: 0, acogidas: 0, parciales: 0, pendientes: 0,
+        obs_items: [], acogidas_items: [], parciales_items: [], pendientes_items: []
+      };
     });
 
     const normalizar = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
@@ -193,21 +196,40 @@ export default function Dashboard() {
       
       if (!hasTec && !hasJur) return; 
 
-      const checkField = (hasObs, fieldStr) => {
+      const checkField = (hasObs, fieldStr, isTecnica) => {
         if (!hasObs) return;
-        locMap[loc].observacionesCount++;
+        
         const val = fieldStr ? String(fieldStr).trim().toUpperCase() : '';
-        if (val === 'SI' || val === 'SÍ') {
+        const estadoObs = (val === 'SI' || val === 'SÍ') ? 'ACOGIDA' : (val.includes('PARCIAL') ? 'PARCIALMENTE' : 'PENDIENTE');
+        
+        const obsObj = {
+          "ID Alerta": a.id,
+          "Localidad": a.localidad,
+          "Contrato": a.contrato || a.numero_contrato || "N/A",
+          "Estado General": a.estado_general || "N/A",
+          "Tipo Observación": isTecnica ? "TÉCNICA" : "JURÍDICA",
+          "Observación": isTecnica ? a.observacion_tecnica : a.observacion_juridica,
+          "Estado de Acogida": estadoObs,
+          "Respuesta Original": fieldStr || "N/A"
+        };
+
+        locMap[loc].observacionesCount++;
+        locMap[loc].obs_items.push(obsObj);
+        
+        if (estadoObs === 'ACOGIDA') {
           locMap[loc].acogidas++;
-        } else if (val.includes('PARCIAL')) {
+          locMap[loc].acogidas_items.push(obsObj);
+        } else if (estadoObs === 'PARCIALMENTE') {
           locMap[loc].parciales++;
+          locMap[loc].parciales_items.push(obsObj);
         } else {
           locMap[loc].pendientes++;
+          locMap[loc].pendientes_items.push(obsObj);
         }
       };
 
-      checkField(hasTec, a.acogio_tecnica);
-      checkField(hasJur, a.acogio_juridica);
+      checkField(hasTec, a.acogio_tecnica, true);
+      checkField(hasJur, a.acogio_juridica, false);
     });
 
     let totalObservaciones = 0, totalAcogidas = 0, totalParciales = 0, totalPendientes = 0;
@@ -340,6 +362,18 @@ export default function Dashboard() {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Frentes de Obra");
     const nombreArchivo = `Obras_${categoria}_${localidad}_UGRT`;
+    XLSX.writeFile(wb, `${nombreArchivo}.xlsx`);
+  };
+
+  const descargarExcelAlertas = (datos, categoria, localidad) => {
+    if (!datos || datos.length === 0) {
+      alert("No hay observaciones para exportar en esta celda.");
+      return;
+    }
+    const ws = XLSX.utils.json_to_sheet(datos);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Observaciones");
+    const nombreArchivo = `Observaciones_${categoria}_${localidad}_UGRT`;
     XLSX.writeFile(wb, `${nombreArchivo}.xlsx`);
   };
 
@@ -844,10 +878,38 @@ export default function Dashboard() {
                     return (
                       <tr key={idx}>
                         <td style={{ border: '1px solid #334155', padding: '8px' }}>{al.loc}</td>
-                        <td style={{ textAlign: 'center', border: '1px solid #334155', padding: '8px' }}>{al.observacionesCount}</td>
-                        <td style={{ textAlign: 'center', border: '1px solid #334155', padding: '8px' }}>{al.acogidas}</td>
-                        <td style={{ textAlign: 'center', border: '1px solid #334155', padding: '8px' }}>{al.parciales}</td>
-                        <td style={{ textAlign: 'center', border: '1px solid #334155', padding: '8px' }}>{al.pendientes}</td>
+                        <td style={{ textAlign: 'center', border: '1px solid #334155', padding: '8px' }}>
+                          <span 
+                            title="Descargar detalle de todas las observaciones a Excel"
+                            style={{ cursor: 'pointer', textDecoration: 'underline', color: 'var(--primary)', fontWeight: 'bold' }}
+                            onClick={() => descargarExcelAlertas(al.obs_items, 'Totales', al.loc)}>
+                            {al.observacionesCount}
+                          </span>
+                        </td>
+                        <td style={{ textAlign: 'center', border: '1px solid #334155', padding: '8px' }}>
+                          <span 
+                            title="Descargar detalle de Acogidas a Excel"
+                            style={{ cursor: 'pointer', textDecoration: 'underline', color: 'var(--success)', fontWeight: 'bold' }}
+                            onClick={() => descargarExcelAlertas(al.acogidas_items, 'Acogidas', al.loc)}>
+                            {al.acogidas}
+                          </span>
+                        </td>
+                        <td style={{ textAlign: 'center', border: '1px solid #334155', padding: '8px' }}>
+                          <span 
+                            title="Descargar detalle de Parcialmente Acogidas a Excel"
+                            style={{ cursor: 'pointer', textDecoration: 'underline', color: 'var(--warning)', fontWeight: 'bold' }}
+                            onClick={() => descargarExcelAlertas(al.parciales_items, 'Parciales', al.loc)}>
+                            {al.parciales}
+                          </span>
+                        </td>
+                        <td style={{ textAlign: 'center', border: '1px solid #334155', padding: '8px' }}>
+                          <span 
+                            title="Descargar detalle de Pendientes a Excel"
+                            style={{ cursor: 'pointer', textDecoration: 'underline', color: 'var(--text-secondary)', fontWeight: 'bold' }}
+                            onClick={() => descargarExcelAlertas(al.pendientes_items, 'Pendientes', al.loc)}>
+                            {al.pendientes}
+                          </span>
+                        </td>
                         <td style={{ textAlign: 'center', border: '1px solid #334155', padding: '8px', backgroundColor: colorBg }}>
                           <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontWeight: 'bold' }}>
                             <span style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: dotColor, display: 'inline-block' }}></span>
