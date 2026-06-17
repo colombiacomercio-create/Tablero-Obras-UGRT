@@ -91,9 +91,8 @@ export default function Dashboard() {
       let okIntervencion = !tipoInt.includes('ESTUDIOS');
       let okCronoFin = !dFin || dFin.getFullYear() !== 2027;
       let okEstado = estado !== 'INCUMPLIMIENTO' && estado !== 'NO EJECUTADO';
-      let okRealFin = !d.fecha_real_fin || (dReal && dReal.getFullYear() === 2026);
       
-      return okTipo && okIntervencion && okCronoFin && okEstado && okRealFin;
+      return okTipo && okIntervencion && okCronoFin && okEstado;
     });
 
     if (localidadFilter === 'VISIÓN GLOBAL') return validData;
@@ -109,17 +108,18 @@ export default function Dashboard() {
     });
   }, [alertas, localidadFilter]);
 
-  // Main KPIs (Paridad Matemática 1:1 con Excel)
   const stats = useMemo(() => {
     let terminadas = 0, suspendidas = 0, enEjecucion = 0, sinCronograma = 0;
     let universoCount = 0;
     let kmTerm = 0, m2Term = 0, mlTerm = 0;
+    let programadas = 0;
     const terminadasCats = {};
 
-    // 1. Calcular Terminadas y Cifras Físicas estrictamente como en el IDC (Fuerza 394 frentes globales)
     const today = new Date(fechaCorte || Date.now());
     const inicio2026 = new Date(2026, 0, 1);
+    const finVigencia = new Date(2026, 11, 31, 23, 59, 59);
     
+    // 1. Calcular Terminadas y Programadas con la restricción estricta de fecha_real_fin
     data.forEach(d => {
       const tc = d.tipo_contrato ? String(d.tipo_contrato).toUpperCase() : '';
       const tipoInt = d.tipo_intervencion ? String(d.tipo_intervencion).toUpperCase().trim() : '';
@@ -131,11 +131,16 @@ export default function Dashboard() {
       const okIntervencion = !tipoInt.includes('ESTUDIOS');
       const okRealFin = !d.fecha_real_fin || (dReal && dReal.getFullYear() === 2026);
       
-      if (!okTipo || !okIntervencion || !okRealFin) return;
+      if (!okTipo || !okIntervencion) return;
       if (localidadFilter !== 'VISIÓN GLOBAL' && d.localidad !== localidadFilter) return;
 
-      const isProgCorte = dFin && dFin >= inicio2026 && dFin <= today;
-      if (isProgCorte && estado === 'TERMINADO') {
+      // Programadas 2026 (Debe dar 1649)
+      if (okRealFin && dFin && dFin >= inicio2026 && dFin <= finVigencia) {
+        programadas++;
+      }
+
+      // Terminadas (Debe dar 534). No se usa isProgCorte para no excluir terminadas sin cronograma de corte.
+      if (estado === 'TERMINADO' && okRealFin) {
         terminadas++;
         kmTerm += Number(d.km_carril) || 0;
         m2Term += Number(d.m2) || 0;
@@ -160,21 +165,26 @@ export default function Dashboard() {
       }
     });
 
-    // 2. Calcular los demás KPIs sobre el universo global filtrado (1832 frentes)
+    // 2. Calcular los demás KPIs sobre el universo global filtrado
     filteredData.forEach(d => {
       const estado = d.estado ? String(d.estado).toUpperCase().trim() : '';
       
       if (localidadFilter === 'VISIÓN GLOBAL' || d.localidad === localidadFilter) {
         universoCount++;
-        if (estado === 'SUSPENDIDO') suspendidas++;
+        
+        // Sumar En Ejecución + Por Iniciar
         if (estado === 'EN EJECUCION' || estado === 'EN EJECUCIÓN' || estado === 'POR INICIAR') enEjecucion++;
+        
+        // Sumar Suspendidas + las que no tienen cronograma
+        if (estado === 'SUSPENDIDO' || !d.crono_fin) suspendidas++;
+        
         if (!d.crono_fin) sinCronograma++;
       }
     });
 
-    // Meta fija de 1700 frentes solicitada por el usuario para la barra de progreso
-    const metaTotal = 1700;
-    const cumplimiento = (terminadas / metaTotal) * 100;
+    // Meta total será igual a las programadas en la vigencia
+    const metaTotal = programadas;
+    const cumplimiento = metaTotal > 0 ? (terminadas / metaTotal) * 100 : 0;
 
     return {
       universoCount, metaTotal, terminadas, suspendidas, enEjecucion, sinCronograma,
