@@ -125,11 +125,13 @@ export default function Dashboard() {
       const tipoInt = d.tipo_intervencion ? String(d.tipo_intervencion).toUpperCase().trim() : '';
       const estado = d.estado ? String(d.estado).toUpperCase().trim() : '';
       let dFin = d.crono_fin ? new Date(d.crono_fin) : null;
+      let dReal = d.fecha_real_fin ? new Date(d.fecha_real_fin) : null;
       
       const okTipo = tc.includes('OBRA') || tc.includes('CONVENIO');
       const okIntervencion = !tipoInt.includes('ESTUDIOS');
+      const okRealFin = !d.fecha_real_fin || (dReal && dReal.getFullYear() === 2026);
       
-      if (!okTipo || !okIntervencion) return;
+      if (!okTipo || !okIntervencion || !okRealFin) return;
       if (localidadFilter !== 'VISIÓN GLOBAL' && d.localidad !== localidadFilter) return;
 
       const isProgCorte = dFin && dFin >= inicio2026 && dFin <= today;
@@ -301,8 +303,9 @@ export default function Dashboard() {
       
       const okTipo = tc.includes('OBRA') || tc.includes('CONVENIO');
       const okIntervencion = !tipoInt.includes('ESTUDIOS');
+      const okRealFin = !d.fecha_real_fin || (dReal && dReal.getFullYear() === 2026);
       
-      if (!okTipo || !okIntervencion) return;
+      if (!okTipo || !okIntervencion || !okRealFin) return;
 
       // Programadas: Universo total de obras programadas para el 2026
       if (dFin && dFin >= inicio2026 && dFin <= finVigencia) {
@@ -409,11 +412,13 @@ export default function Dashboard() {
       const tipoInt = d.tipo_intervencion ? String(d.tipo_intervencion).toUpperCase().trim() : '';
       const estado = d.estado ? String(d.estado).toUpperCase().trim() : '';
       let dFin = d.crono_fin ? new Date(d.crono_fin) : null;
+      let dReal = d.fecha_real_fin ? new Date(d.fecha_real_fin) : null;
       
       const okTipo = tc.includes('OBRA') || tc.includes('CONVENIO');
       const okIntervencion = !tipoInt.includes('ESTUDIOS');
+      const okRealFin = !d.fecha_real_fin || (dReal && dReal.getFullYear() === 2026);
       
-      if (!okTipo || !okIntervencion) return;
+      if (!okTipo || !okIntervencion || !okRealFin) return;
 
       const normalizar = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
       let rawLoc = d.localidad ? normalizar(String(d.localidad)) : null;
