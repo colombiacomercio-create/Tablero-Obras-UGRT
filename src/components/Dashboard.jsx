@@ -196,8 +196,11 @@ export default function Dashboard() {
     const locMap = {};
     LOCALIDADES.forEach(loc => {
       locMap[loc] = { 
-        loc, observacionesCount: 0, acogidas: 0, parciales: 0, pendientes: 0,
-        obs_items: [], acogidas_items: [], parciales_items: [], pendientes_items: []
+        loc, 
+        obsTecCount: 0, tecAcogidas: 0, tecNoAcogidas: 0,
+        obsJurCount: 0, jurAcogidas: 0, jurNoAcogidas: 0,
+        obs_tec_items: [], tec_acogidas_items: [], tec_no_acogidas_items: [],
+        obs_jur_items: [], jur_acogidas_items: [], jur_no_acogidas_items: []
       };
     });
 
@@ -205,12 +208,10 @@ export default function Dashboard() {
 
     filteredAlertas.forEach(a => {
       let rawLoc = a.localidad ? normalizar(String(a.localidad)) : null;
-      
       let matchedKey = null;
       if (rawLoc) {
         matchedKey = Object.keys(locMap).find(k => normalizar(k) === rawLoc);
       }
-      
       if (!matchedKey) return;
       const loc = matchedKey;
       
@@ -218,9 +219,13 @@ export default function Dashboard() {
       const valJur = a.observacion_juridica ? String(a.observacion_juridica).trim() : '';
       
       const isInvalid = (str) => {
-        const s = str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+        if (!str) return true;
+        const s = String(str).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
         return s === '0' || s === 'n/a' || s === 'na' || s === '' || s.includes('no hay observacion') || s.includes('sin observacion');
       };
+
+      const hasGestiones = !isInvalid(a.gestiones_otras_entidades);
+      if (hasGestiones) return; // Excluir si tiene gestiones ante otras entidades
 
       const hasTec = !isInvalid(valTec);
       const hasJur = !isInvalid(valJur);
@@ -231,7 +236,7 @@ export default function Dashboard() {
         if (!hasObs) return;
         
         const val = fieldStr ? String(fieldStr).trim().toUpperCase() : '';
-        const estadoObs = (val === 'SI' || val === 'SÍ') ? 'ACOGIDA' : (val.includes('PARCIAL') ? 'PARCIALMENTE' : 'PENDIENTE');
+        const estadoObs = (val === 'SI' || val === 'SÍ' || val.includes('PARCIAL')) ? 'ACOGIDA' : 'NO_ACOGIDA';
         
         const obsObj = {
           "ID Alerta": a.id,
@@ -244,18 +249,26 @@ export default function Dashboard() {
           "Respuesta Original": fieldStr || "N/A"
         };
 
-        locMap[loc].observacionesCount++;
-        locMap[loc].obs_items.push(obsObj);
-        
-        if (estadoObs === 'ACOGIDA') {
-          locMap[loc].acogidas++;
-          locMap[loc].acogidas_items.push(obsObj);
-        } else if (estadoObs === 'PARCIALMENTE') {
-          locMap[loc].parciales++;
-          locMap[loc].parciales_items.push(obsObj);
+        if (isTecnica) {
+          locMap[loc].obsTecCount++;
+          locMap[loc].obs_tec_items.push(obsObj);
+          if (estadoObs === 'ACOGIDA') {
+            locMap[loc].tecAcogidas++;
+            locMap[loc].tec_acogidas_items.push(obsObj);
+          } else {
+            locMap[loc].tecNoAcogidas++;
+            locMap[loc].tec_no_acogidas_items.push(obsObj);
+          }
         } else {
-          locMap[loc].pendientes++;
-          locMap[loc].pendientes_items.push(obsObj);
+          locMap[loc].obsJurCount++;
+          locMap[loc].obs_jur_items.push(obsObj);
+          if (estadoObs === 'ACOGIDA') {
+            locMap[loc].jurAcogidas++;
+            locMap[loc].jur_acogidas_items.push(obsObj);
+          } else {
+            locMap[loc].jurNoAcogidas++;
+            locMap[loc].jur_no_acogidas_items.push(obsObj);
+          }
         }
       };
 
@@ -263,11 +276,11 @@ export default function Dashboard() {
       checkField(hasJur, a.acogio_juridica, false);
     });
 
-    let totalObservaciones = 0, totalAcogidas = 0, totalParciales = 0, totalPendientes = 0;
-
     let resultList = Object.values(locMap).map(st => {
-      const pct = st.observacionesCount > 0 ? ((st.acogidas * 1) + (st.parciales * 0.5)) / st.observacionesCount * 100 : 0;
-      return { ...st, pct };
+      const totalObs = st.obsTecCount + st.obsJurCount;
+      const totalAcogidas = st.tecAcogidas + st.jurAcogidas;
+      const pct = totalObs > 0 ? (totalAcogidas / totalObs) * 100 : 100;
+      return { ...st, totalObs, totalAcogidas, pct };
     });
     
     if (localidadFilter !== 'VISIÓN GLOBAL') {
@@ -276,19 +289,25 @@ export default function Dashboard() {
       resultList.sort((a, b) => b.pct - a.pct);
     }
 
+    let tObsTec = 0, tTecAcog = 0, tTecNo = 0;
+    let tObsJur = 0, tJurAcog = 0, tJurNo = 0;
+
     resultList.forEach(st => {
-      totalObservaciones += st.observacionesCount;
-      totalAcogidas += st.acogidas;
-      totalParciales += st.parciales;
-      totalPendientes += st.pendientes;
+      tObsTec += st.obsTecCount;
+      tTecAcog += st.tecAcogidas;
+      tTecNo += st.tecNoAcogidas;
+      tObsJur += st.obsJurCount;
+      tJurAcog += st.jurAcogidas;
+      tJurNo += st.jurNoAcogidas;
     });
 
+    const totalObsGlob = tObsTec + tObsJur;
+    const totalAcogGlob = tTecAcog + tJurAcog;
+
     const totales = {
-      observacionesCount: totalObservaciones,
-      acogidas: totalAcogidas,
-      parciales: totalParciales,
-      pendientes: totalPendientes,
-      pct: totalObservaciones > 0 ? ((totalAcogidas * 1) + (totalParciales * 0.5)) / totalObservaciones * 100 : 0
+      tObsTec, tTecAcog, tTecNo,
+      tObsJur, tJurAcog, tJurNo,
+      pct: totalObsGlob > 0 ? (totalAcogGlob / totalObsGlob) * 100 : 100
     };
 
     return { list: resultList, totales };
@@ -901,19 +920,21 @@ export default function Dashboard() {
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                 <thead style={{ position: 'sticky', top: 0, zIndex: 1 }}>
                   <tr>
-                    <th style={{ backgroundColor: '#1e3a5f', color: '#fff', border: '1px solid #334155' }}>Alcaldía Local</th>
-                    <th style={{ backgroundColor: '#1e3a5f', color: '#fff', textAlign: 'center', border: '1px solid #334155', width: '130px' }}>Total Observaciones</th>
-                    <th style={{ backgroundColor: '#4b7535', color: '#fff', textAlign: 'center', border: '1px solid #334155' }}>Acogidas</th>
-                    <th style={{ backgroundColor: '#d97706', color: '#fff', textAlign: 'center', border: '1px solid #334155' }}>Parcialmente</th>
-                    <th style={{ backgroundColor: '#777777', color: '#fff', textAlign: 'center', border: '1px solid #334155' }}>Pendientes</th>
-                    <th style={{ backgroundColor: '#1e66a5', color: '#fff', textAlign: 'center', border: '1px solid #334155' }}>% Recomendaciones Acogidas</th>
+                    <th style={{ backgroundColor: '#1e3a5f', color: '#fff', border: '1px solid #334155' }}>Localidad</th>
+                    <th style={{ backgroundColor: '#1e3a5f', color: '#fff', textAlign: 'center', border: '1px solid #334155' }}>Obs. Técnicas</th>
+                    <th style={{ backgroundColor: '#4b7535', color: '#fff', textAlign: 'center', border: '1px solid #334155' }}>Técnicas Acogidas (SI/Parcialmente)</th>
+                    <th style={{ backgroundColor: '#d97706', color: '#fff', textAlign: 'center', border: '1px solid #334155' }}>Técnicas No Acogidas (NO)</th>
+                    <th style={{ backgroundColor: '#1e3a5f', color: '#fff', textAlign: 'center', border: '1px solid #334155' }}>Obs. Jurídicas</th>
+                    <th style={{ backgroundColor: '#4b7535', color: '#fff', textAlign: 'center', border: '1px solid #334155' }}>Jurídicas Acogidas (SI/Parcialmente)</th>
+                    <th style={{ backgroundColor: '#d97706', color: '#fff', textAlign: 'center', border: '1px solid #334155' }}>Jurídicas No Acogidas (NO)</th>
+                    <th style={{ backgroundColor: '#1e66a5', color: '#fff', textAlign: 'center', border: '1px solid #334155' }}>% Cumplimiento</th>
                   </tr>
                 </thead>
                 <tbody>
                   {alertasResumen.list.map((al, idx) => {
                     let colorBg = '';
                     let dotColor = '';
-                    if (al.pct >= 60) {
+                    if (al.totalObs === 0 || al.pct >= 70) {
                       colorBg = 'rgba(74, 175, 105, 0.2)';
                       dotColor = '#4aaf69';
                     } else if (al.pct >= 30) {
@@ -926,43 +947,47 @@ export default function Dashboard() {
                     
                     return (
                       <tr key={idx}>
-                        <td style={{ border: '1px solid #334155', padding: '8px' }}>{al.loc}</td>
+                        <td style={{ border: '1px solid #334155', padding: '8px' }}>{idx + 1}. {al.loc}</td>
+                        
+                        {/* TECNICAS */}
                         <td style={{ textAlign: 'center', border: '1px solid #334155', padding: '8px' }}>
-                          <span 
-                            title="Descargar detalle de todas las observaciones a Excel"
-                            style={{ cursor: 'pointer', textDecoration: 'underline', color: 'var(--primary)', fontWeight: 'bold' }}
-                            onClick={() => descargarExcelAlertas(al.obs_items, 'Totales', al.loc)}>
-                            {al.observacionesCount}
+                          <span title="Descargar observaciones técnicas a Excel" style={{ cursor: 'pointer', textDecoration: 'underline', color: 'var(--primary)', fontWeight: 'bold' }} onClick={() => descargarExcelAlertas(al.obs_tec_items, 'Técnicas', al.loc)}>
+                            {al.obsTecCount}
                           </span>
                         </td>
                         <td style={{ textAlign: 'center', border: '1px solid #334155', padding: '8px' }}>
-                          <span 
-                            title="Descargar detalle de Acogidas a Excel"
-                            style={{ cursor: 'pointer', textDecoration: 'underline', color: 'var(--success)', fontWeight: 'bold' }}
-                            onClick={() => descargarExcelAlertas(al.acogidas_items, 'Acogidas', al.loc)}>
-                            {al.acogidas}
+                          <span title="Descargar técnicas acogidas a Excel" style={{ cursor: 'pointer', textDecoration: 'underline', color: 'var(--success)', fontWeight: 'bold' }} onClick={() => descargarExcelAlertas(al.tec_acogidas_items, 'Técnicas_Acogidas', al.loc)}>
+                            {al.tecAcogidas}
                           </span>
                         </td>
                         <td style={{ textAlign: 'center', border: '1px solid #334155', padding: '8px' }}>
-                          <span 
-                            title="Descargar detalle de Parcialmente Acogidas a Excel"
-                            style={{ cursor: 'pointer', textDecoration: 'underline', color: 'var(--warning)', fontWeight: 'bold' }}
-                            onClick={() => descargarExcelAlertas(al.parciales_items, 'Parciales', al.loc)}>
-                            {al.parciales}
+                          <span title="Descargar técnicas NO acogidas a Excel" style={{ cursor: 'pointer', textDecoration: 'underline', color: 'var(--warning)', fontWeight: 'bold' }} onClick={() => descargarExcelAlertas(al.tec_no_acogidas_items, 'Técnicas_No_Acogidas', al.loc)}>
+                            {al.tecNoAcogidas}
+                          </span>
+                        </td>
+
+                        {/* JURIDICAS */}
+                        <td style={{ textAlign: 'center', border: '1px solid #334155', padding: '8px' }}>
+                          <span title="Descargar observaciones jurídicas a Excel" style={{ cursor: 'pointer', textDecoration: 'underline', color: 'var(--primary)', fontWeight: 'bold' }} onClick={() => descargarExcelAlertas(al.obs_jur_items, 'Jurídicas', al.loc)}>
+                            {al.obsJurCount}
                           </span>
                         </td>
                         <td style={{ textAlign: 'center', border: '1px solid #334155', padding: '8px' }}>
-                          <span 
-                            title="Descargar detalle de Pendientes a Excel"
-                            style={{ cursor: 'pointer', textDecoration: 'underline', color: 'var(--text-secondary)', fontWeight: 'bold' }}
-                            onClick={() => descargarExcelAlertas(al.pendientes_items, 'Pendientes', al.loc)}>
-                            {al.pendientes}
+                          <span title="Descargar jurídicas acogidas a Excel" style={{ cursor: 'pointer', textDecoration: 'underline', color: 'var(--success)', fontWeight: 'bold' }} onClick={() => descargarExcelAlertas(al.jur_acogidas_items, 'Jurídicas_Acogidas', al.loc)}>
+                            {al.jurAcogidas}
                           </span>
                         </td>
+                        <td style={{ textAlign: 'center', border: '1px solid #334155', padding: '8px' }}>
+                          <span title="Descargar jurídicas NO acogidas a Excel" style={{ cursor: 'pointer', textDecoration: 'underline', color: 'var(--warning)', fontWeight: 'bold' }} onClick={() => descargarExcelAlertas(al.jur_no_acogidas_items, 'Jurídicas_No_Acogidas', al.loc)}>
+                            {al.jurNoAcogidas}
+                          </span>
+                        </td>
+
+                        {/* % CUMPLIMIENTO */}
                         <td style={{ textAlign: 'center', border: '1px solid #334155', padding: '8px', backgroundColor: colorBg }}>
                           <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontWeight: 'bold' }}>
                             <span style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: dotColor, display: 'inline-block' }}></span>
-                            {al.pct.toFixed(1)}%
+                            {al.totalObs === 0 ? '100.0%' : `${al.pct.toFixed(1)}%`}
                           </span>
                         </td>
                       </tr>
@@ -970,22 +995,18 @@ export default function Dashboard() {
                   })}
                   <tr style={{ backgroundColor: '#1e3a5f', color: '#fff', fontWeight: 'bold' }}>
                     <td style={{ border: '1px solid #334155', padding: '8px' }}>TOTAL</td>
-                    <td style={{ textAlign: 'center', border: '1px solid #334155', padding: '8px' }}>{alertasResumen.totales.alertasCount}</td>
-                    <td style={{ textAlign: 'center', border: '1px solid #334155', padding: '8px' }}>{alertasResumen.totales.si}</td>
-                    <td style={{ textAlign: 'center', border: '1px solid #334155', padding: '8px' }}>{alertasResumen.totales.no}</td>
-                    <td style={{ textAlign: 'center', border: '1px solid #334155', padding: '8px' }}>{alertasResumen.totales.vacio}</td>
+                    <td style={{ textAlign: 'center', border: '1px solid #334155', padding: '8px' }}>{alertasResumen.totales.tObsTec}</td>
+                    <td style={{ textAlign: 'center', border: '1px solid #334155', padding: '8px' }}>{alertasResumen.totales.tTecAcog}</td>
+                    <td style={{ textAlign: 'center', border: '1px solid #334155', padding: '8px' }}>{alertasResumen.totales.tTecNo}</td>
+                    <td style={{ textAlign: 'center', border: '1px solid #334155', padding: '8px' }}>{alertasResumen.totales.tObsJur}</td>
+                    <td style={{ textAlign: 'center', border: '1px solid #334155', padding: '8px' }}>{alertasResumen.totales.tJurAcog}</td>
+                    <td style={{ textAlign: 'center', border: '1px solid #334155', padding: '8px' }}>{alertasResumen.totales.tJurNo}</td>
                     <td style={{ textAlign: 'center', border: '1px solid #334155', padding: '8px' }}>
                       {alertasResumen.totales.pct.toFixed(1)}%
                     </td>
                   </tr>
                 </tbody>
               </table>
-            </div>
-            
-            <div style={{ padding: '16px 24px', background: 'rgba(255, 255, 255, 0.03)', borderTop: '1px solid var(--surface-border)' }}>
-              <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-secondary)' }}>
-                * En sintonía con el libro de Excel, los encabezados <strong>Observaciones</strong> y <strong>Acogidas</strong> corresponden matemáticamente al conteo de los registros "SI" y "NO" respectivamente. El total de recomendaciones (% Acogidas) asume un máximo de 2 campos (técnico y jurídico) por cada frente de obra registrado en esta matriz.
-              </p>
             </div>
           </div>
         </div>
