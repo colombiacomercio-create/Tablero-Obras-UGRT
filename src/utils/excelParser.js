@@ -45,7 +45,7 @@ export const parseExcelToDB = async (file, onProgress) => {
         }
         
         onProgress('Procesando hoja Alertas...');
-        const alertasSheet = workbook.Sheets['Alertas'];
+        const alertasSheet = workbook.Sheets['Alertas'] || workbook.Sheets['ALERTAS'];
         const parsedAlertas = [];
         if (alertasSheet) {
           const alertasRows = XLSX.utils.sheet_to_json(alertasSheet, { header: "A", defval: null });
